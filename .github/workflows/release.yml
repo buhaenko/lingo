@@ -1,0 +1,34 @@
+name: Release
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+  actions: read
+
+jobs:
+  release:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Tests
+        run: scripts/test.sh
+      - name: Build
+        run: scripts/build.sh "${GITHUB_REF_NAME#v}"
+      - name: Sign the update
+        env:
+          UPDATE_SIGNING_KEY: ${{ secrets.UPDATE_SIGNING_KEY }}
+        run: swift scripts/sign-update.swift build/Lingo.zip > build/Lingo.zip.sig
+      - name: Publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" build/Lingo.dmg build/Lingo.zip build/Lingo.zip.sig build/SHA256SUMS.txt \
+            --title "Lingo ${GITHUB_REF_NAME#v}" --notes-from-tag
+
+  site:
+    needs: release
+    uses: ./.github/workflows/pages.yml

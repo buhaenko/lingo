@@ -1,0 +1,255 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lingo — switch Mac keyboard languages with fn + a letter</title>
+<meta name="description" content="Lingo is a free, open-source Mac menu bar app: hold fn and press a letter to jump straight to a keyboard layout. No cycling, no guessing. ~12 MB of memory.">
+<link rel="canonical" href="https://buhaenko.github.io/lingo/">
+<meta name="theme-color" content="#0c0a14">
+<meta name="color-scheme" content="dark">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+<link rel="icon" type="image/png" sizes="64x64" href="favicon.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Lingo">
+<meta property="og:title" content="Lingo — switch Mac keyboard languages with fn + a letter">
+<meta property="og:description" content="Lingo is a free, open-source Mac menu bar app: hold fn and press a letter to jump straight to a keyboard layout. No cycling, no guessing. ~12 MB of memory.">
+<meta property="og:url" content="https://buhaenko.github.io/lingo/">
+<meta property="og:image" content="https://buhaenko.github.io/lingo/og.png">
+<meta property="og:image:width" content="1200"><meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Lingo — switch Mac keyboard languages with fn + a letter">
+<meta name="twitter:description" content="Lingo is a free, open-source Mac menu bar app: hold fn and press a letter to jump straight to a keyboard layout. No cycling, no guessing. ~12 MB of memory.">
+<meta name="twitter:image" content="https://buhaenko.github.io/lingo/og.png">
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "SoftwareApplication", "name": "Lingo", "operatingSystem": "macOS 14+", "applicationCategory": "UtilitiesApplication", "description": "Lingo is a free, open-source Mac menu bar app: hold fn and press a letter to jump straight to a keyboard layout. No cycling, no guessing. ~12 MB of memory.", "url": "https://buhaenko.github.io/lingo/", "downloadUrl": "https://github.com/buhaenko/lingo/releases/latest/download/Lingo.dmg", "softwareVersion": "1.0.0", "fileSize": "0.8 MB", "license": "https://opensource.org/licenses/MIT", "isAccessibleForFree": true, "offers": {"@type": "Offer", "price": "0", "priceCurrency": "USD"}, "author": {"@type": "Person", "name": "Serhii Buhaienko", "url": "https://github.com/buhaenko"}}</script>
+<style>
+  :root { --bg: #0c0a14; --ink: #f2f0f8; --muted: #a39fb5; --faint: #8a86a0; --line: rgba(255,255,255,.08);
+          --violet: #8b6bff; --pink: #e05bc5; --grad: linear-gradient(90deg, #c9b9ff, #f5a9dd); }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body { display: flex; flex-direction: column; min-height: 100svh; background: var(--bg); color: var(--ink);
+         font: 16px/1.55 -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif; -webkit-font-smoothing: antialiased; overflow-x: hidden; }
+  body::before { content: ""; position: fixed; inset: -20vh -20vw auto auto; width: 80vw; height: 80vh; pointer-events: none;
+                 background: radial-gradient(closest-side, rgba(139,107,255,.28), transparent 70%); filter: blur(20px); z-index: -1; }
+  body::after { content: ""; position: fixed; inset: auto auto -30vh -20vw; width: 70vw; height: 70vh; pointer-events: none;
+                background: radial-gradient(closest-side, rgba(224,91,197,.16), transparent 70%); filter: blur(20px); z-index: -1; }
+  a { color: inherit; }
+
+  /* fake menu bar */
+  .menubar { flex: none; height: 32px; display: flex; align-items: center; justify-content: flex-end; gap: 18px; padding: 0 18px;
+             background: rgba(20,18,30,.6); backdrop-filter: blur(24px) saturate(1.4); -webkit-backdrop-filter: blur(24px) saturate(1.4);
+             border-bottom: 1px solid var(--line); font-size: 13px; color: #d9d6e6; }
+  .menubar .left { margin-right: auto; display: flex; align-items: center; gap: 18px; font-weight: 600; }
+  .menubar .left img { width: 16px; height: 16px; }
+  .menubar .left span:not(:first-child) { font-weight: 400; color: #b8b4c8; }
+  .glyph { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 2px 8px; border-radius: 6px; transition: background .2s; }
+  .glyph.flash { background: rgba(255,255,255,.14); }
+  .glyph b { font: 700 12.5px/1 ui-rounded, -apple-system, sans-serif; letter-spacing: .02em; }
+  .glyph i { display: flex; gap: 3px; }
+  .glyph i span { width: 3px; height: 3px; border-radius: 50%; background: rgba(255,255,255,.32); transition: background .2s; }
+  .glyph i span.on { background: #fff; }
+
+  /* one screen: pitch on the left, demo on the right */
+  main { flex: 1; width: 100%; max-width: 1120px; margin: 0 auto; padding: 32px 40px;
+         display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 64px; align-items: center; }
+  .brand { display: flex; align-items: center; gap: 12px; font: 700 20px/1 ui-rounded, -apple-system, sans-serif; }
+  .brand img { width: 52px; height: 52px; filter: drop-shadow(0 10px 24px rgba(139,107,255,.45)); }
+  h1 { margin-top: 26px; font: 700 clamp(36px, 4.6vw, 56px)/1.04 ui-rounded, -apple-system, sans-serif; letter-spacing: -.03em; }
+  h1 span { background: linear-gradient(90deg, #b9a6ff, #f39ad8); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .lead { margin-top: 16px; max-width: 460px; color: var(--muted); font-size: 17.5px; }
+
+  .cmd { margin-top: 30px; display: flex; align-items: center; gap: 10px; border-radius: 14px; padding: 7px 7px 7px 16px;
+         background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.1); }
+  .cmd code { flex: 1; min-width: 0; overflow-x: auto; white-space: nowrap; scrollbar-width: none; font: 500 13.5px/1.4 ui-monospace, "SF Mono", Menlo, monospace; color: #e4e0f2; }
+  .cmd code::before { content: "$ "; color: var(--faint); }
+  .cmd button { border: 0; cursor: pointer; border-radius: 10px; padding: 10px 16px; color: #fff; font: 600 13.5px -apple-system, sans-serif;
+                background: linear-gradient(135deg, var(--violet), var(--pink)); box-shadow: 0 8px 20px -8px rgba(139,107,255,.7); }
+  .meta { margin-top: 10px; color: var(--faint); font-size: 13.5px; }
+  .meta a { color: var(--muted); }
+  .notmac { display: none; margin-top: 12px; padding: 10px 14px; border-radius: 12px; font-size: 14px;
+            background: rgba(255,255,255,.06); border: 1px solid var(--line); color: var(--muted); }
+
+  /* numbers */
+  .stats { margin-top: 30px; display: flex; gap: 34px; }
+  .stat b { display: block; font: 700 30px/1 ui-rounded, -apple-system, sans-serif; letter-spacing: -.02em;
+            background: var(--grad); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .stat > span { display: block; margin-top: 7px; color: var(--faint); font-size: 13px; }
+  .stat.hero b { font-size: 44px; }
+
+  /* demo */
+  .play { display: flex; flex-direction: column; align-items: center; gap: 22px; padding: 44px 24px; border-radius: 24px;
+          background: rgba(255,255,255,.035); border: 1px solid var(--line); text-align: center; }
+  .keys { display: flex; gap: 10px; align-items: center; justify-content: center; }
+  .key { min-width: 64px; height: 64px; padding: 0 16px; border-radius: 14px; display: grid; place-items: center; cursor: pointer; user-select: none;
+         font: 600 20px/1 ui-rounded, -apple-system, sans-serif; color: #e9e6f5;
+         background: linear-gradient(#2a2638, #1d1a29); border: 1px solid rgba(255,255,255,.09);
+         box-shadow: 0 4px 0 #0a0910, 0 10px 24px -8px rgba(0,0,0,.7), inset 0 1px 0 rgba(255,255,255,.08);
+         transition: transform .08s, box-shadow .08s, color .2s, border-color .2s; }
+  .key small { display: block; margin-top: 6px; font: 500 10.5px/1 -apple-system, sans-serif; color: var(--faint); }
+  .key.fn { font-size: 16px; color: var(--muted); }
+  .key.down { transform: translateY(3px); box-shadow: 0 1px 0 #0a0910, 0 4px 10px -6px rgba(0,0,0,.7), inset 0 1px 0 rgba(255,255,255,.08); }
+  .key.active { border-color: rgba(185,166,255,.6); color: #fff; }
+  .plus { color: var(--faint); font-size: 20px; }
+  .now { color: var(--muted); font-size: 15px; min-height: 24px; }
+  .now strong { color: var(--ink); }
+  .facts { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
+  .facts span { padding: 5px 11px; border-radius: 99px; font-size: 12.5px; color: var(--muted); background: rgba(255,255,255,.05); border: 1px solid var(--line); }
+  .kbd { font: 600 13px/1 ui-rounded, -apple-system, sans-serif; padding: 3px 7px; border-radius: 6px; background: rgba(255,255,255,.08);
+         border: 1px solid rgba(255,255,255,.1); border-bottom-width: 2px; color: var(--ink); white-space: nowrap; }
+
+  footer { flex: none; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 10px; padding: 16px 40px;
+           border-top: 1px solid var(--line); color: var(--faint); font-size: 13.5px; }
+  footer a, footer button { color: var(--muted); text-decoration: none; }
+  footer a:hover, footer button:hover { color: var(--ink); }
+  footer nav { display: flex; gap: 18px; flex-wrap: wrap; }
+  footer button { border: 0; background: none; font: inherit; cursor: pointer; }
+
+  /* “Is it safe?” */
+  dialog { margin: auto; width: min(560px, calc(100% - 32px)); max-height: min(640px, calc(100svh - 48px)); overflow: auto; padding: 28px 28px 20px;
+           border-radius: 20px; background: #17141f; color: var(--ink); border: 1px solid rgba(255,255,255,.1); box-shadow: 0 40px 100px rgba(0,0,0,.6); }
+  dialog::backdrop { background: rgba(5,4,10,.6); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
+  dialog h2 { font: 700 24px/1.2 ui-rounded, -apple-system, sans-serif; margin-bottom: 10px; }
+  dialog .x { position: absolute; top: 18px; right: 18px; width: 30px; height: 30px; border-radius: 50%; border: 0; cursor: pointer;
+              background: rgba(255,255,255,.08); color: var(--muted); font-size: 16px; }
+  dialog details { border-top: 1px solid var(--line); padding: 14px 0; }
+  dialog summary { cursor: pointer; font-weight: 600; list-style: none; display: flex; justify-content: space-between; gap: 16px; }
+  dialog summary::-webkit-details-marker { display: none; }
+  dialog summary::after { content: "+"; color: var(--faint); font-weight: 400; transition: transform .2s; }
+  dialog details[open] summary::after { transform: rotate(45deg); }
+  dialog details p, dialog details ul { margin-top: 8px; color: var(--muted); font-size: 15px; }
+  dialog ul { padding-left: 18px; } dialog li + li { margin-top: 6px; }
+  dialog code { font: 500 12.5px ui-monospace, "SF Mono", Menlo, monospace; color: var(--ink); word-break: break-all; }
+
+  :focus-visible { outline: 2px solid #8b6bff; outline-offset: 3px; border-radius: 6px; }
+  .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  @media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition: none !important; animation: none !important; } }
+  @media (max-height: 720px) { main { padding-block: 20px; } h1 { margin-top: 18px; } .cmd, .stats { margin-top: 22px; } .play { padding: 32px 24px; } }
+  @media (max-width: 900px) {
+    main { grid-template-columns: minmax(0, 1fr); gap: 36px; padding: 40px 20px; text-align: center; }
+    .brand { justify-content: center; } .lead { margin-inline: auto; } .stats { justify-content: center; }
+    footer { justify-content: center; text-align: center; padding: 16px 20px; }
+    .menubar .left span:not(:first-child) { display: none; }
+  }
+  @media (max-width: 480px) { .keys { gap: 8px; flex-wrap: wrap; } .play { padding: 32px 16px; } .key { min-width: 52px; height: 54px; padding: 0 10px; font-size: 17px; } .key small { font-size: 9px; }
+                              .plus { font-size: 16px; } .stats { gap: 22px; } .stat.hero b { font-size: 36px; } .cmd { padding-left: 12px; } }
+</style>
+</head>
+<body>
+<div class="menubar" aria-hidden="true">
+  <div class="left"><img src="icon.png" alt=""><span>Lingo</span><span>File</span><span>Edit</span><span>View</span></div>
+  <div class="glyph" id="glyph"><b id="gcode">EN</b><i id="gdots"></i></div>
+  <span id="clock"></span>
+</div>
+
+<main>
+  <div class="intro">
+    <div class="brand"><img src="icon.png" alt="Lingo app icon" width="52" height="52">Lingo</div>
+    <h1>Hold <span>fn</span>.<br>Press a letter. Done.</h1>
+    <p class="lead">Jump straight to the keyboard language you want. No cycling through layouts, no guessing which one is on.</p>
+
+    <div class="cmd"><code id="cmd">curl -fsSL https://buhaenko.github.io/lingo/install.sh | bash</code><button id="copy" aria-label="Copy install command">Copy</button><span class="sr" id="copied" aria-live="polite"></span></div>
+    <div class="meta">Paste into Terminal to install · or <a href="https://github.com/buhaenko/lingo/releases/latest/download/Lingo.dmg">download the DMG</a> · macOS 14+</div>
+    <div class="notmac" id="notmac">Lingo is a Mac app — open this page on your Mac to install it.</div>
+
+    <div class="stats">
+      <div class="stat hero"><b data-v="downloads">0</b><span>downloads</span></div>
+      <div class="stat"><b>Free</b><span>and open source</span></div>
+      <div class="stat"><b data-v="size">0.8 MB</b><span>v<span data-v="version">1.0.0</span></span></div>
+    </div>
+  </div>
+
+  <div class="play">
+    <div class="keys">
+      <div class="key fn" id="kfn">fn</div><div class="plus">+</div>
+      <div class="key" data-l="0">E<small>English</small></div>
+      <div class="key" data-l="1">D<small>Deutsch</small></div>
+      <div class="key" data-l="2">S<small>Español</small></div>
+    </div>
+    <div class="now" id="now">Try it — press <span class="kbd">E</span> <span class="kbd">D</span> or <span class="kbd">S</span>, and watch the menu bar.</div>
+    <div class="facts"><span>Any layout, any letter</span><span>fn, ⌃ or ⌥</span><span>~12 MB of memory</span><span>Never goes online</span></div>
+  </div>
+</main>
+
+<footer>
+  <span>Made by <a href="https://github.com/buhaenko">Serhii Buhaienko</a></span>
+  <nav aria-label="Links"><button id="safeBtn">Is it safe?</button><a href="https://github.com/buhaenko/lingo">GitHub</a><a href="https://github.com/buhaenko/lingo/issues">Report a bug</a><a href="../lens/">Lens</a></nav>
+</footer>
+
+<dialog id="safe" aria-labelledby="safeTitle">
+  <button class="x" id="safeClose" aria-label="Close">✕</button>
+  <h2 id="safeTitle">Is it safe?</h2>
+  <details open><summary>It’s open source</summary>
+    <p>Every line of Lingo is on <a href="https://github.com/buhaenko/lingo">GitHub</a>. Each release is built and tested by GitHub Actions straight from that code,
+       so the app you download is the code you can read.</p></details>
+  <details><summary>What it can access — and why</summary>
+    <ul><li><strong>Accessibility</strong> — so the letter you press together with fn switches the layout instead of being typed. Lingo only reacts to fn + your chosen letters; it doesn’t record or store anything you type.</li></ul>
+    <p>macOS asks you first; Lingo is already in the list, you just flip the switch. You can turn it off any time in System Settings → Privacy &amp; Security.</p></details>
+  <details><summary>Does it send my data anywhere?</summary><p>No. Lingo never sends what you type anywhere. Its only network request is a daily check on GitHub for a new version (you can turn it off in Settings). No analytics, no accounts, no tracking.</p></details>
+  <details><summary>Why doesn’t macOS say “verified developer”?</summary>
+    <p>Apple charges $99 a year for that badge. Lingo is a free side project, so it’s signed locally instead.
+       The Terminal command installs it without any warning. With the DMG, macOS asks once — click
+       <strong>Open Anyway</strong> in System Settings → Privacy &amp; Security.</p></details>
+  <details><summary>How do I check the download?</summary>
+    <p>Compare the SHA-256 of the file with the one published on the release page:</p>
+    <p><code>shasum -a 256 ~/Downloads/Lingo.dmg</code><br><code data-v="sha"><a href="https://github.com/buhaenko/lingo/releases/latest">see the release page</a></code></p></details>
+  <details><summary>How do I uninstall it?</summary>
+    <p>Quit Lingo from its menu and drag it from Applications to the Trash — or run<br>
+       <code>curl -fsSL https://buhaenko.github.io/lingo/install.sh | bash -s -- uninstall</code></p></details>
+  <details><summary>Tip: fn on its own switches layouts too</summary>
+    <p>Set System Settings → Keyboard → “Press 🌐 key to” → Do Nothing.</p></details>
+</dialog>
+<script>
+  const langs = [{ code: 'EN', name: 'English' }, { code: 'DE', name: 'Deutsch' }, { code: 'ES', name: 'Español' }];
+  const keyMap = { e: 0, d: 1, s: 2 };
+  const glyph = document.getElementById('glyph'), gcode = document.getElementById('gcode'), gdots = document.getElementById('gdots');
+  const now = document.getElementById('now'), fn = document.getElementById('kfn');
+  const keys = [...document.querySelectorAll('.key[data-l]')];
+  gdots.innerHTML = langs.map(() => '<span></span>').join('');
+  let cur = 0;
+  function set(i, tell = true) {
+    cur = i;
+    gcode.textContent = langs[i].code;
+    [...gdots.children].forEach((d, j) => d.classList.toggle('on', j === i));
+    keys.forEach((k, j) => k.classList.toggle('active', j === i));
+    glyph.classList.add('flash'); setTimeout(() => glyph.classList.remove('flash'), 260);
+    if (tell) now.innerHTML = `Switched to <strong>${langs[i].name}</strong> — look up at the menu bar.`;
+  }
+  function press(i) {
+    fn.classList.add('down'); keys[i].classList.add('down');
+    setTimeout(() => { fn.classList.remove('down'); keys[i].classList.remove('down'); }, 140);
+    set(i);
+  }
+  set(0, false);
+  keys.forEach((k, i) => k.addEventListener('click', () => press(i)));
+  document.addEventListener('keydown', e => {
+    if (e.metaKey || e.ctrlKey || e.altKey) return;
+    const i = keyMap[e.key.toLowerCase()] ?? keyMap[{ у: 'e', в: 'd', і: 's', ы: 's' }[e.key.toLowerCase()]];
+    if (i !== undefined) press(i);
+  });
+
+  const clock = document.getElementById('clock');
+  const tick = () => clock.textContent = new Date().toLocaleString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }).replace(',', '');
+  tick(); setInterval(tick, 30000);
+
+  // install command: GitHub Pages copy of install.sh; on a local preview it points at this server instead
+  const local = /^(localhost|127\.0\.0\.1)$/.test(location.hostname);
+  const base = local ? location.href.replace(/[#?].*$/, '').replace(/index\.html$/, '').replace(/\/?$/, '/') : 'https://buhaenko.github.io/lingo/';
+  const cmd = local ? `curl -fsSL ${base}install.sh | INSTALL_BASE_URL=${base.slice(0, -1)} bash` : `curl -fsSL ${base}install.sh | bash`;
+  document.getElementById('cmd').textContent = cmd;
+  document.getElementById('copy').onclick = async ev => {
+    try { await navigator.clipboard.writeText(cmd); ev.target.textContent = 'Copied'; document.getElementById('copied').textContent = 'Install command copied'; }
+    catch { ev.target.textContent = 'Select & copy'; }
+    setTimeout(() => ev.target.textContent = 'Copy', 1600);
+  };
+  if (!/Macintosh|Mac OS X/.test(navigator.userAgent) || 'ontouchend' in document) document.getElementById('notmac').style.display = 'block';
+
+  // “Is it safe?”
+  const safe = document.getElementById('safe');
+  document.getElementById('safeBtn').onclick = () => safe.showModal();
+  document.getElementById('safeClose').onclick = () => safe.close();
+  safe.addEventListener('click', e => { if (e.target === safe) safe.close(); });
+  if (location.hash === '#faq') safe.showModal();
+</script>
+</body>
+</html>

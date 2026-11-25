@@ -1,0 +1,45 @@
+name: Site
+on:
+  push:
+    branches: [main]
+    paths: ['docs/**', 'scripts/stamp-site.py', '.github/workflows/pages.yml']
+  workflow_call:
+  schedule:
+    - cron: '17 */3 * * *'   # keeps the download count fresh
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Stamp the latest release into the page
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api "repos/$GITHUB_REPOSITORY/releases/latest" > "$RUNNER_TEMP/latest.json"
+          gh api --paginate --slurp "repos/$GITHUB_REPOSITORY/releases" > "$RUNNER_TEMP/releases.json"
+          python3 scripts/stamp-site.py docs/index.html "$RUNNER_TEMP/latest.json" "$RUNNER_TEMP/releases.json"
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: docs
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - id: deploy
+        uses: actions/deploy-pages@v5
