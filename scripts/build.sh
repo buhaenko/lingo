@@ -60,7 +60,12 @@ codesign --verify --strict $APP
 echo "▸ packaging"
 stage=$(mktemp -d)
 cp -R $APP $stage/ && ln -s /Applications $stage/Applications
-hdiutil create -quiet -volname "$NAME" -srcfolder $stage -fs HFS+ -format UDZO -ov $BUILD/$NAME.dmg
+# hdiutil sometimes fails with "Resource busy" on CI runners — retry a few times
+for attempt in 1 2 3 4 5; do
+  hdiutil create -quiet -volname "$NAME" -srcfolder $stage -fs HFS+ -format UDZO -ov $BUILD/$NAME.dmg && break
+  [[ $attempt == 5 ]] && { echo "✗ hdiutil failed"; exit 1; }
+  echo "  hdiutil failed, retrying ($attempt)…"; sleep $((attempt * 3))
+done
 rm -rf $stage
 ditto -c -k --keepParent $APP $BUILD/$NAME.zip
 if [[ -n "${SIGN_ID:-}" ]]; then
