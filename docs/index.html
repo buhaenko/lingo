@@ -239,7 +239,7 @@
       <div class="key" data-l="2">S<small>Español</small></div>
     </div>
     <div class="now" id="now">Try it — press <span class="kbd">E</span> <span class="kbd">D</span> or <span class="kbd">S</span>, and watch the menu bar.</div>
-    <div class="facts"><span>Any layout, any letter</span><span>fn, ⌃ or ⌥</span><span>~12 MB of memory</span><span>Never goes online</span></div>
+    <div class="facts"><span>Any layout, any letter</span><span>fn, ⌃ or ⌥</span><span>~12 MB of memory</span><span>Nothing you type leaves your Mac</span></div>
   </div>
 </main>
 
@@ -257,7 +257,7 @@
   <details><summary>What it can access — and why</summary>
     <ul><li><strong>Accessibility</strong> — so the letter you press together with fn switches the layout instead of being typed. Lingo only reacts to fn + your chosen letters; it doesn’t record or store anything you type.</li></ul>
     <p>macOS asks you first; Lingo is already in the list, you just flip the switch. You can turn it off any time in System Settings → Privacy &amp; Security.</p></details>
-  <details><summary>Does it send my data anywhere?</summary><p>No. Lingo never sends what you type anywhere. Its only network request is a daily check on GitHub for a new version (you can turn it off in Settings). No analytics, no accounts, no tracking.</p></details>
+  <details><summary>Does it send my data anywhere?</summary><p>No. Lingo never sends what you type anywhere. Its only network request is a daily check on GitHub for a new version (you can turn it off in Settings). No analytics in the app, no accounts, no tracking. This website counts visits anonymously with Cloudflare Web Analytics — no cookies, nothing that identifies you.</p></details>
   <details><summary>Why doesn’t macOS say “verified developer”?</summary>
     <p>Apple charges $99 a year for that badge. Lingo is a free side project, so it’s signed locally instead.
        The Terminal command installs it without any warning. With the DMG, macOS asks once — click
@@ -337,5 +337,7 @@
     show();
   })();
 </script>
+<!-- anonymous visit counts: Cloudflare Web Analytics, no cookies -->
+<script defer src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon='{"token": "f102e634e22540cb9c8bcbdb48e2b3ab"}'></script>
 </body>
 </html>
