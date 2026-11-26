@@ -16,6 +16,7 @@ import Carbon
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         guard becomeSingleInstance() else { return }
+        Appearance.apply()
         installEditMenu()
         let menu = NSMenu()
         menu.delegate = self
@@ -28,11 +29,16 @@ import Carbon
         ) { [weak self] _ in
             MainActor.assumeIsolated { self?.refresh() }
         }
+        NSLog("Lingo: launched \(Updater.currentVersion)")
+        if Self.e2e { return }               // end-to-end test copy: no keyboard tap, prompts or update checks
         installKeyboardTap()
         Updater.shared.isIdle = { [weak self] in !(self?.settingsWindow?.isVisible ?? false) }
         Updater.shared.onChange = { [weak self] in self?.showUpdateState() }
         Updater.shared.start()
     }
+
+    /// Set by scripts/e2e.sh, which runs a renamed copy next to the real app.
+    static let e2e = ProcessInfo.processInfo.environment["LINGO_E2E"] == "1"
 
     /// Opening Lingo again (Finder, Spotlight) shows Settings.
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows: Bool) -> Bool {
@@ -49,7 +55,10 @@ import Carbon
             exit(0)
         }
         center.addObserver(forName: .init(id + ".open"), object: nil, queue: .main) { [weak self] _ in
-            MainActor.assumeIsolated { self?.openSettings() }
+            MainActor.assumeIsolated {
+                if Self.e2e { NSLog("Lingo: asked to open"); return }
+                self?.openSettings()
+            }
         }
         return true
     }

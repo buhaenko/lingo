@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  <a href="https://buhaenko.github.io/lingo/">Website</a> ·
+  <a href="https://getlingo.dev/">Website</a> ·
   <a href="https://github.com/buhaenko/lingo/releases/latest">Download</a>
 </p>
 
@@ -21,7 +21,7 @@
 ## Install
 
 ```sh
-curl -fsSL https://buhaenko.github.io/lingo/install.sh | bash
+curl -fsSL https://getlingo.dev/install.sh | bash
 ```
 
 That’s it — Lingo lands in Applications and appears in the menu bar.
@@ -54,7 +54,8 @@ instead of being typed — it only reacts to your shortcuts and never records wh
 ## Build from source
 
 ```sh
-scripts/test.sh          # 78 unit + integration tests
+scripts/test.sh          # 100+ unit, integration and crash tests
+scripts/e2e.sh           # runs the built app: launch, single instance, broken settings, hard kills, crash reports
 scripts/build.sh 1.0.0   # → build/Lingo.app, Lingo.dmg, Lingo.zip
 ```
 

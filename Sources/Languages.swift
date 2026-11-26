@@ -32,22 +32,49 @@ let keyLetters: [Int: String] = [
         if let data = UserDefaults.standard.data(forKey: "langs"), let saved = try? JSONDecoder().decode([Lang].self, from: data) {
             langs = saved
         } else {
-            langs = Store.fromEnabledLayouts()
+            langs = Store.firstRun()
         }
     }
 
-    /// First run: the layouts the user already has enabled, each on the first letter of its code.
-    static func fromEnabledLayouts() -> [Lang] {
-        var usedKeys = Set<Int>()
-        var result: [Lang] = []
-        for id in enabledKeyboardLayouts().prefix(6) {
+    /// The usual macOS layout for a language — used when the person doesn't have one enabled yet.
+    static let standardLayouts: [String: String] = [
+        "en": "com.apple.keylayout.US", "de": "com.apple.keylayout.German", "es": "com.apple.keylayout.Spanish-ISO",
+        "fr": "com.apple.keylayout.French", "uk": "com.apple.keylayout.Ukrainian-PC", "it": "com.apple.keylayout.Italian",
+        "pt": "com.apple.keylayout.Portuguese", "pl": "com.apple.keylayout.PolishPro", "ru": "com.apple.keylayout.Russian",
+        "sv": "com.apple.keylayout.Swedish", "tr": "com.apple.keylayout.Turkish-QWERTY-PC", "cs": "com.apple.keylayout.Czech",
+    ]
+    /// Ready to go on first launch, after the person's own layouts and languages.
+    static let popular = ["en", "de", "es", "fr"]
+
+    /// First run: the person's enabled layouts, then their macOS languages, then popular ones — at least four, at most six.
+    /// Layouts that aren't enabled yet get enabled the first time they're used.
+    static func firstRun(enabled: [String] = enabledKeyboardLayouts(),
+                         preferred: [String] = Locale.preferredLanguages,
+                         installed: (String) -> Bool = { source($0, includeAll: true) != nil }) -> [Lang] {
+        var ids: [String] = [], codes = Set<String>()
+        func add(_ id: String) {
+            guard ids.count < 6, installed(id) else { return }
             let code = suggestCode(id)
-            let preferred = keyLetters.first { $0.value == String(code.prefix(1)) && !usedKeys.contains($0.key) }?.key
-            guard let key = preferred ?? keyLetters.keys.sorted().first(where: { !usedKeys.contains($0) }) else { continue }
-            usedKeys.insert(key)
-            result.append(Lang(sourceID: id, code: code, key: key))
+            guard codes.insert(code).inserted else { return }      // ABC and U.S. are both English: keep one
+            ids.append(id)
         }
-        return result.isEmpty ? [Lang(sourceID: "com.apple.keylayout.US", code: "EN", key: kVK_ANSI_E)] : result
+        enabled.forEach(add)
+        for language in preferred {
+            let base = Locale.Language(identifier: language).languageCode?.identifier ?? language
+            if let id = standardLayouts[base] { add(id) }
+        }
+        for language in popular where ids.count < 4 { if let id = standardLayouts[language] { add(id) } }
+        if ids.isEmpty { ids = ["com.apple.keylayout.US"] }
+
+        var used = Set<Int>()
+        return ids.map { id in
+            let code = suggestCode(id)
+            let letters = Array(code) + Array(languageName(id).uppercased())
+            let key = letters.lazy.compactMap { ch in keyLetters.first { $0.value == String(ch) && !used.contains($0.key) }?.key }.first
+                ?? keyLetters.keys.sorted().first { !used.contains($0) }!
+            used.insert(key)
+            return Lang(sourceID: id, code: code, key: key)
+        }
     }
 
     func save() {

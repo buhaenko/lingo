@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Lingo — switch Mac keyboard languages with fn + a letter</title>
 <meta name="description" content="Lingo is a free, open-source Mac menu bar app: hold fn and press a letter to jump straight to a keyboard layout. No cycling, no guessing. ~12 MB of memory.">
-<link rel="canonical" href="https://buhaenko.github.io/lingo/">
+<link rel="canonical" href="https://getlingo.dev/">
 <meta name="theme-color" content="#0c0a14" media="(prefers-color-scheme: dark)">
 <meta name="color-scheme" content="dark light">
 <meta name="theme-color" content="#f5f4f8" media="(prefers-color-scheme: light)">
@@ -17,14 +17,14 @@
 <meta property="og:site_name" content="Lingo">
 <meta property="og:title" content="Lingo — switch Mac keyboard languages with fn + a letter">
 <meta property="og:description" content="Lingo is a free, open-source Mac menu bar app: hold fn and press a letter to jump straight to a keyboard layout. No cycling, no guessing. ~12 MB of memory.">
-<meta property="og:url" content="https://buhaenko.github.io/lingo/">
-<meta property="og:image" content="https://buhaenko.github.io/lingo/og.png">
+<meta property="og:url" content="https://getlingo.dev/">
+<meta property="og:image" content="https://getlingo.dev/og.png">
 <meta property="og:image:width" content="1200"><meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Lingo — switch Mac keyboard languages with fn + a letter">
 <meta name="twitter:description" content="Lingo is a free, open-source Mac menu bar app: hold fn and press a letter to jump straight to a keyboard layout. No cycling, no guessing. ~12 MB of memory.">
-<meta name="twitter:image" content="https://buhaenko.github.io/lingo/og.png">
-<script type="application/ld+json">{"@context": "https://schema.org", "@type": "SoftwareApplication", "name": "Lingo", "operatingSystem": "macOS 14+", "applicationCategory": "UtilitiesApplication", "description": "Lingo is a free, open-source Mac menu bar app: hold fn and press a letter to jump straight to a keyboard layout. No cycling, no guessing. ~12 MB of memory.", "url": "https://buhaenko.github.io/lingo/", "downloadUrl": "https://github.com/buhaenko/lingo/releases/latest/download/Lingo.dmg", "softwareVersion": "1.0.0", "fileSize": "0.8 MB", "license": "https://opensource.org/licenses/MIT", "isAccessibleForFree": true, "offers": {"@type": "Offer", "price": "0", "priceCurrency": "USD"}}</script>
+<meta name="twitter:image" content="https://getlingo.dev/og.png">
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "SoftwareApplication", "name": "Lingo", "operatingSystem": "macOS 14+", "applicationCategory": "UtilitiesApplication", "description": "Lingo is a free, open-source Mac menu bar app: hold fn and press a letter to jump straight to a keyboard layout. No cycling, no guessing. ~12 MB of memory.", "url": "https://getlingo.dev/", "downloadUrl": "https://github.com/buhaenko/lingo/releases/latest/download/Lingo.dmg", "softwareVersion": "1.0.0", "fileSize": "0.8 MB", "license": "https://opensource.org/licenses/MIT", "isAccessibleForFree": true, "offers": {"@type": "Offer", "price": "0", "priceCurrency": "USD"}}</script>
 <style>
   :root { --bg: #0c0a14; --ink: #f2f0f8; --muted: #a39fb5; --faint: #8a86a0; --line: rgba(255,255,255,.08);
           --violet: #8b6bff; --pink: #e05bc5; --grad: linear-gradient(90deg, #c9b9ff, #f5a9dd); }
@@ -220,7 +220,7 @@
     <h1>Hold <span>fn</span>.<br>Press a letter. Done.</h1>
     <p class="lead">Jump straight to the keyboard language you want. No cycling through layouts, no guessing which one is on.</p>
 
-    <div class="cmd"><code id="cmd">curl -fsSL https://buhaenko.github.io/lingo/install.sh | bash</code><button id="copy" aria-label="Copy install command">Copy</button><span class="sr" id="copied" aria-live="polite"></span></div>
+    <div class="cmd"><code id="cmd">curl -fsSL https://getlingo.dev/install.sh | bash</code><button id="copy" aria-label="Copy install command">Copy</button><span class="sr" id="copied" aria-live="polite"></span></div>
     <div class="meta">Paste into Terminal to install · or <a href="https://github.com/buhaenko/lingo/releases/latest/download/Lingo.dmg">download the DMG</a> · macOS 14+</div>
     <div class="notmac" id="notmac">Lingo is a Mac app — open this page on your Mac to install it.</div>
 
@@ -267,7 +267,7 @@
     <p><code>shasum -a 256 ~/Downloads/Lingo.dmg</code><br><code data-v="sha"><a href="https://github.com/buhaenko/lingo/releases/latest">see the release page</a></code></p></details>
   <details><summary>How do I uninstall it?</summary>
     <p>Quit Lingo from its menu and drag it from Applications to the Trash — or run<br>
-       <code>curl -fsSL https://buhaenko.github.io/lingo/install.sh | bash -s -- uninstall</code></p></details>
+       <code>curl -fsSL https://getlingo.dev/install.sh | bash -s -- uninstall</code></p></details>
   <details><summary>Tip: fn on its own switches layouts too</summary>
     <p>Set System Settings → Keyboard → “Press 🌐 key to” → Do Nothing.</p></details>
 </dialog>
@@ -306,7 +306,7 @@
 
   // install command: GitHub Pages copy of install.sh; on a local preview it points at this server instead
   const local = /^(localhost|127\.0\.0\.1)$/.test(location.hostname);
-  const base = local ? location.href.replace(/[#?].*$/, '').replace(/index\.html$/, '').replace(/\/?$/, '/') : 'https://buhaenko.github.io/lingo/';
+  const base = local ? location.href.replace(/[#?].*$/, '').replace(/index\.html$/, '').replace(/\/?$/, '/') : 'https://getlingo.dev/';
   const cmd = local ? `curl -fsSL ${base}install.sh | INSTALL_BASE_URL=${base.slice(0, -1)} bash` : `curl -fsSL ${base}install.sh | bash`;
   document.getElementById('cmd').textContent = cmd;
   document.getElementById('copy').onclick = async ev => {

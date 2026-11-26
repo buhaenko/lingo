@@ -1,7 +1,7 @@
 #!/bin/bash
-# Lingo installer — https://buhaenko.github.io/lingo/
-#   curl -fsSL <site>/lingo/install.sh | bash
-#   curl -fsSL <site>/lingo/install.sh | bash -s -- uninstall
+# Lingo installer — https://getlingo.dev/
+#   curl -fsSL https://getlingo.dev/install.sh | bash
+#   curl -fsSL https://getlingo.dev/install.sh | bash -s -- uninstall
 # Downloads Lingo.zip next to this script, installs it into /Applications (or ~/Applications) and starts it.
 # Files fetched with curl carry no quarantine flag, so macOS opens the app without the "unidentified developer" prompt.
 set -euo pipefail
@@ -50,4 +50,4 @@ xattr -dr com.apple.quarantine "${DEST}/${APP}.app" 2>/dev/null || true
 
 [ -n "${INSTALL_NO_OPEN:-}" ] || open "${DEST}/${APP}.app"
 say "${bold}✓ ${APP} is installed${reset} ${dim}(${DEST}/${APP}.app)${reset}"
-say "${dim}It lives in your menu bar. Uninstall: curl -fsSL https://buhaenko.github.io/lingo/install.sh | bash -s -- uninstall${reset}"
+say "${dim}It lives in your menu bar. Uninstall: curl -fsSL https://getlingo.dev/install.sh | bash -s -- uninstall${reset}"

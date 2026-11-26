@@ -64,12 +64,25 @@ import Carbon
     expectEqual(languageName("com.apple.keylayout.German-DIN-2137"), "Deutsch", "language names are native (Deutsch)")
     expectEqual(languageName("com.example.unknown"), "com.example.unknown", "unknown layout → its id, no crash")
 
-    section("First run — picks the user's own layouts")
-    let first = Store.fromEnabledLayouts()
-    expect(!first.isEmpty, "at least one language (\(first.map(\.code).joined(separator: ", ")))")
+    section("First run — your layouts, your languages, then popular ones")
+    let first = Store.firstRun()
+    expect(first.count >= 4 && first.count <= 6, "4–6 languages ready on first launch (\(first.map(\.code).joined(separator: ", ")))")
     expectEqual(Set(first.map(\.key)).count, first.count, "every language gets its own key")
+    expectEqual(Set(first.map(\.code)).count, first.count, "no language twice")
     expect(first.allSatisfy { !$0.code.isEmpty && keyLetters[$0.key] != nil }, "every language has a code and a valid key")
-    expect(first.allSatisfy { source($0.sourceID) != nil }, "only layouts that are actually enabled")
+    expect(first.allSatisfy { source($0.sourceID, includeAll: true) != nil }, "only layouts macOS has")
+    let fresh = Store.firstRun(enabled: ["com.apple.keylayout.ABC"], preferred: ["en-US"])
+    expectEqual(fresh.map(\.code), ["EN", "DE", "ES", "FR"], "a new Mac with only English → English, German, Spanish, French")
+    expectEqual(fresh.map { keyLetters[$0.key]! }, ["E", "D", "S", "F"], "on E, D, S, F")
+    let ukrainian = Store.firstRun(enabled: ["com.apple.keylayout.US"], preferred: ["uk-UA", "en"])
+    expectEqual(ukrainian.map(\.code), ["EN", "UK", "DE", "ES"], "Ukrainian in macOS → Ukrainian comes right after English")
+    let both = Store.firstRun(enabled: ["com.apple.keylayout.ABC", "com.apple.keylayout.US", "com.apple.keylayout.German"], preferred: ["de"])
+    expectEqual(both.map(\.code), ["EN", "DE", "ES", "FR"], "ABC and U.S. are one language, not two")
+    let many = Store.firstRun(enabled: ["com.apple.keylayout.US", "com.apple.keylayout.German", "com.apple.keylayout.French", "com.apple.keylayout.Italian",
+                                        "com.apple.keylayout.Polish", "com.apple.keylayout.Swedish", "com.apple.keylayout.Czech"], preferred: [])
+    expectEqual(many.count, 6, "never more than six")
+    expectEqual(Store.firstRun(enabled: [], preferred: [], installed: { _ in false }).map(\.code), ["EN"], "nothing usable → English, no crash")
+    expectEqual(Store.firstRun(enabled: ["com.example.bogus"], preferred: ["xx", ""]).first?.code, "EN", "garbage in → sensible defaults")
 
     section("Menu bar glyph")
     for n in [0, 1, 3, 6] {
@@ -96,6 +109,8 @@ import Carbon
     } else { skip("layout switching", "only one keyboard layout is enabled") }
     activate("com.example.does-not-exist")
     expectEqual(currentSourceID(), original, "activating a missing layout does nothing (no crash)")
+
+    runRobustnessTests()
 
     finish("Lingo")
 }

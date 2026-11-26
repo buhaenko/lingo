@@ -77,6 +77,7 @@ struct LangRow: View {
 }
 
 struct SettingsView: View {
+    @State private var appearance = Appearance.current
     @ObservedObject var store = Store.shared
     let sources = allKeyboardSources()
     @State private var launchAtLogin = SMAppService.mainApp.status == .enabled
@@ -120,6 +121,14 @@ struct SettingsView: View {
             }
 
             group("Options") {
+                row("Appearance") {
+                    Picker("", selection: $appearance) {
+                        ForEach(Appearance.allCases) { choice in Label(choice.title, systemImage: choice.symbol).tag(choice) }
+                    }
+                    .labelsHidden().pickerStyle(.segmented).fixedSize()
+                    .onChange(of: appearance) { _, choice in Appearance.apply(choice) }
+                }
+                Divider().padding(.leading, 12)
                 row("Switch with") {
                     Picker("", selection: $trigger) { ForEach(Trigger.allCases) { Text($0.label).tag($0) } }
                         .labelsHidden().fixedSize()
