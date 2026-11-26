@@ -63,4 +63,4 @@ Plain Swift, no dependencies, no Xcode project. Releases are built by
 
 ## License
 
-[MIT](LICENSE) © Serhii Buhaienko
+[MIT](LICENSE)

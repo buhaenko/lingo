@@ -6,8 +6,10 @@
 <title>Lingo — switch Mac keyboard languages with fn + a letter</title>
 <meta name="description" content="Lingo is a free, open-source Mac menu bar app: hold fn and press a letter to jump straight to a keyboard layout. No cycling, no guessing. ~12 MB of memory.">
 <link rel="canonical" href="https://buhaenko.github.io/lingo/">
-<meta name="theme-color" content="#0c0a14">
-<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#0c0a14" media="(prefers-color-scheme: dark)">
+<meta name="color-scheme" content="dark light">
+<meta name="theme-color" content="#f5f4f8" media="(prefers-color-scheme: light)">
+<script>try { const t = localStorage.getItem("theme"); if (t === "light" || t === "dark") document.documentElement.dataset.theme = t; } catch (e) {}</script>
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="icon" type="image/png" sizes="64x64" href="favicon.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
@@ -22,7 +24,7 @@
 <meta name="twitter:title" content="Lingo — switch Mac keyboard languages with fn + a letter">
 <meta name="twitter:description" content="Lingo is a free, open-source Mac menu bar app: hold fn and press a letter to jump straight to a keyboard layout. No cycling, no guessing. ~12 MB of memory.">
 <meta name="twitter:image" content="https://buhaenko.github.io/lingo/og.png">
-<script type="application/ld+json">{"@context": "https://schema.org", "@type": "SoftwareApplication", "name": "Lingo", "operatingSystem": "macOS 14+", "applicationCategory": "UtilitiesApplication", "description": "Lingo is a free, open-source Mac menu bar app: hold fn and press a letter to jump straight to a keyboard layout. No cycling, no guessing. ~12 MB of memory.", "url": "https://buhaenko.github.io/lingo/", "downloadUrl": "https://github.com/buhaenko/lingo/releases/latest/download/Lingo.dmg", "softwareVersion": "1.0.0", "fileSize": "0.8 MB", "license": "https://opensource.org/licenses/MIT", "isAccessibleForFree": true, "offers": {"@type": "Offer", "price": "0", "priceCurrency": "USD"}, "author": {"@type": "Person", "name": "Serhii Buhaienko", "url": "https://github.com/buhaenko"}}</script>
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "SoftwareApplication", "name": "Lingo", "operatingSystem": "macOS 14+", "applicationCategory": "UtilitiesApplication", "description": "Lingo is a free, open-source Mac menu bar app: hold fn and press a letter to jump straight to a keyboard layout. No cycling, no guessing. ~12 MB of memory.", "url": "https://buhaenko.github.io/lingo/", "downloadUrl": "https://github.com/buhaenko/lingo/releases/latest/download/Lingo.dmg", "softwareVersion": "1.0.0", "fileSize": "0.8 MB", "license": "https://opensource.org/licenses/MIT", "isAccessibleForFree": true, "offers": {"@type": "Offer", "price": "0", "priceCurrency": "USD"}}</script>
 <style>
   :root { --bg: #0c0a14; --ink: #f2f0f8; --muted: #a39fb5; --faint: #8a86a0; --line: rgba(255,255,255,.08);
           --violet: #8b6bff; --pink: #e05bc5; --grad: linear-gradient(90deg, #c9b9ff, #f5a9dd); }
@@ -98,11 +100,11 @@
   .kbd { font: 600 13px/1 ui-rounded, -apple-system, sans-serif; padding: 3px 7px; border-radius: 6px; background: rgba(255,255,255,.08);
          border: 1px solid rgba(255,255,255,.1); border-bottom-width: 2px; color: var(--ink); white-space: nowrap; }
 
-  footer { flex: none; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 10px; padding: 16px 40px;
+  footer { flex: none; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; padding: 16px 40px;
            border-top: 1px solid var(--line); color: var(--faint); font-size: 13.5px; }
   footer a, footer button { color: var(--muted); text-decoration: none; }
   footer a:hover, footer button:hover { color: var(--ink); }
-  footer nav { display: flex; gap: 18px; flex-wrap: wrap; }
+  footer nav { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; }
   footer button { border: 0; background: none; font: inherit; cursor: pointer; }
 
   /* “Is it safe?” */
@@ -133,6 +135,76 @@
   }
   @media (max-width: 480px) { .keys { gap: 8px; flex-wrap: wrap; } .play { padding: 32px 16px; } .key { min-width: 52px; height: 54px; padding: 0 10px; font-size: 17px; } .key small { font-size: 9px; }
                               .plus { font-size: 16px; } .stats { gap: 22px; } .stat.hero b { font-size: 36px; } .cmd { padding-left: 12px; } }
+
+  .gh { display: inline-flex; align-items: center; gap: 8px; padding: 7px 13px 7px 11px; border-radius: 99px; text-decoration: none;
+        font: 600 13px/1 -apple-system, sans-serif; color: var(--ink); background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.12);
+        transition: background .15s, border-color .15s; }
+  .gh:hover { background: rgba(255,255,255,.12); border-color: rgba(255,255,255,.22); color: var(--ink); }
+  .brand .gh { margin-left: auto; }
+  footer .gh { color: var(--ink); }
+  @media (max-width: 900px) { .brand .gh { margin-left: 6px; } }
+  @media (max-width: 480px) { .brand .gh span { display: none; } .brand .gh { padding: 8px; } }
+  /* ───── light theme: soft, nothing glaring. Auto follows macOS; the footer switch overrides it ───── */
+  .theme { display: inline-flex; gap: 2px; padding: 3px; border-radius: 99px; border: 1px solid rgba(255,255,255,.1); background: rgba(255,255,255,.05); }
+  .theme button { width: 28px; height: 24px; display: grid; place-items: center; border-radius: 99px; color: var(--faint); }
+  .theme button svg { width: 15px; height: 15px; }
+  .theme button[aria-pressed="true"] { background: rgba(127,120,150,.22); color: var(--ink); }
+  :root[data-theme="light"] { color-scheme: light; --bg: #f5f4f8; --ink: #24202e; --muted: #5d5870; --faint: #77728a; --line: rgba(40,30,70,.1); --card: #ffffff; --card-line: rgba(40,30,70,.11); }
+  :root[data-theme="light"] body::before { opacity: .45;}
+  :root[data-theme="light"] body::after { opacity: .45;}
+  :root[data-theme="light"] .menubar { background: rgba(250,249,252,.72); color: #2c2738;}
+  :root[data-theme="light"] .menubar .left span:not(:first-child) { color: #5d5870;}
+  :root[data-theme="light"] .glyph.flash { background: rgba(40,30,70,.1);}
+  :root[data-theme="light"] .glyph i span { background: rgba(40,30,70,.28);}
+  :root[data-theme="light"] .glyph i span.on { background: #2c2738;}
+  :root[data-theme="light"] .brand img { filter: drop-shadow(0 8px 18px rgba(139,107,255,.25));}
+  :root[data-theme="light"] h1 span { background-image: linear-gradient(90deg, #7552e0, #cf4fa6);}
+  :root[data-theme="light"] .stat b { background-image: linear-gradient(90deg, #7552e0, #cf4fa6); }
+  :root[data-theme="light"] .cmd { background: var(--card); border-color: var(--card-line); box-shadow: 0 6px 20px -12px rgba(60,40,100,.25);}
+  :root[data-theme="light"] .cmd code { color: #24202e;}
+  :root[data-theme="light"] .notmac { background: var(--card);}
+  :root[data-theme="light"] .play { background: rgba(255,255,255,.65); border-color: var(--card-line);}
+  :root[data-theme="light"] .key { color: #2c2738; background: linear-gradient(#ffffff, #eeecf4); border-color: rgba(40,30,70,.14); box-shadow: 0 4px 0 #d6d2e2, 0 10px 22px -10px rgba(60,40,100,.3), inset 0 1px 0 #fff;}
+  :root[data-theme="light"] .key.down { box-shadow: 0 1px 0 #d6d2e2, 0 4px 10px -6px rgba(60,40,100,.3), inset 0 1px 0 #fff;}
+  :root[data-theme="light"] .key.active { border-color: rgba(117,82,224,.55); color: #5a3bc4;}
+  :root[data-theme="light"] .facts span { background: var(--card); border-color: var(--card-line);}
+  :root[data-theme="light"] .kbd { background: var(--card); border-color: var(--card-line);}
+  :root[data-theme="light"] .gh { background: var(--card); border-color: var(--card-line); box-shadow: 0 1px 2px rgba(40,30,70,.06);}
+  :root[data-theme="light"] .gh:hover { background: #f0eef5; border-color: rgba(40,30,70,.18);}
+  :root[data-theme="light"] .theme { background: var(--card); border-color: var(--card-line);}
+  :root[data-theme="light"] dialog { background: #fcfbfd; border-color: rgba(40,30,70,.1); box-shadow: 0 40px 90px rgba(40,30,70,.22);}
+  :root[data-theme="light"] dialog::backdrop { background: rgba(40,30,60,.25);}
+  :root[data-theme="light"] dialog .x { background: rgba(40,30,70,.06);}
+  :root[data-theme="light"] :focus-visible { outline-color: #7552e0;}
+  @media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) { color-scheme: light; --bg: #f5f4f8; --ink: #24202e; --muted: #5d5870; --faint: #77728a; --line: rgba(40,30,70,.1); --card: #ffffff; --card-line: rgba(40,30,70,.11); }
+  :root:not([data-theme="dark"]) body::before { opacity: .45;}
+  :root:not([data-theme="dark"]) body::after { opacity: .45;}
+  :root:not([data-theme="dark"]) .menubar { background: rgba(250,249,252,.72); color: #2c2738;}
+  :root:not([data-theme="dark"]) .menubar .left span:not(:first-child) { color: #5d5870;}
+  :root:not([data-theme="dark"]) .glyph.flash { background: rgba(40,30,70,.1);}
+  :root:not([data-theme="dark"]) .glyph i span { background: rgba(40,30,70,.28);}
+  :root:not([data-theme="dark"]) .glyph i span.on { background: #2c2738;}
+  :root:not([data-theme="dark"]) .brand img { filter: drop-shadow(0 8px 18px rgba(139,107,255,.25));}
+  :root:not([data-theme="dark"]) h1 span { background-image: linear-gradient(90deg, #7552e0, #cf4fa6);}
+  :root:not([data-theme="dark"]) .stat b { background-image: linear-gradient(90deg, #7552e0, #cf4fa6); }
+  :root:not([data-theme="dark"]) .cmd { background: var(--card); border-color: var(--card-line); box-shadow: 0 6px 20px -12px rgba(60,40,100,.25);}
+  :root:not([data-theme="dark"]) .cmd code { color: #24202e;}
+  :root:not([data-theme="dark"]) .notmac { background: var(--card);}
+  :root:not([data-theme="dark"]) .play { background: rgba(255,255,255,.65); border-color: var(--card-line);}
+  :root:not([data-theme="dark"]) .key { color: #2c2738; background: linear-gradient(#ffffff, #eeecf4); border-color: rgba(40,30,70,.14); box-shadow: 0 4px 0 #d6d2e2, 0 10px 22px -10px rgba(60,40,100,.3), inset 0 1px 0 #fff;}
+  :root:not([data-theme="dark"]) .key.down { box-shadow: 0 1px 0 #d6d2e2, 0 4px 10px -6px rgba(60,40,100,.3), inset 0 1px 0 #fff;}
+  :root:not([data-theme="dark"]) .key.active { border-color: rgba(117,82,224,.55); color: #5a3bc4;}
+  :root:not([data-theme="dark"]) .facts span { background: var(--card); border-color: var(--card-line);}
+  :root:not([data-theme="dark"]) .kbd { background: var(--card); border-color: var(--card-line);}
+  :root:not([data-theme="dark"]) .gh { background: var(--card); border-color: var(--card-line); box-shadow: 0 1px 2px rgba(40,30,70,.06);}
+  :root:not([data-theme="dark"]) .gh:hover { background: #f0eef5; border-color: rgba(40,30,70,.18);}
+  :root:not([data-theme="dark"]) .theme { background: var(--card); border-color: var(--card-line);}
+  :root:not([data-theme="dark"]) dialog { background: #fcfbfd; border-color: rgba(40,30,70,.1); box-shadow: 0 40px 90px rgba(40,30,70,.22);}
+  :root:not([data-theme="dark"]) dialog::backdrop { background: rgba(40,30,60,.25);}
+  :root:not([data-theme="dark"]) dialog .x { background: rgba(40,30,70,.06);}
+  :root:not([data-theme="dark"]) :focus-visible { outline-color: #7552e0;}
+  }
 </style>
 </head>
 <body>
@@ -144,7 +216,7 @@
 
 <main>
   <div class="intro">
-    <div class="brand"><img src="icon.png" alt="Lingo app icon" width="52" height="52">Lingo</div>
+    <div class="brand"><img src="icon.png" alt="Lingo app icon" width="52" height="52">Lingo<a class="gh" href="https://github.com/buhaenko/lingo"><svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg><span>Open source on GitHub</span></a></div>
     <h1>Hold <span>fn</span>.<br>Press a letter. Done.</h1>
     <p class="lead">Jump straight to the keyboard language you want. No cycling through layouts, no guessing which one is on.</p>
 
@@ -172,8 +244,8 @@
 </main>
 
 <footer>
-  <span>Made by <a href="https://github.com/buhaenko">Serhii Buhaienko</a></span>
-  <nav aria-label="Links"><button id="safeBtn">Is it safe?</button><a href="https://github.com/buhaenko/lingo">GitHub</a><a href="https://github.com/buhaenko/lingo/issues">Report a bug</a><a href="https://getlensy.app/">Lensy</a></nav>
+  <a class="gh" href="https://github.com/buhaenko/lingo"><svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg><span>github.com/buhaenko/lingo</span></a>
+  <nav aria-label="Links"><div class="theme" role="group" aria-label="Theme"><button data-t="auto" title="Match my Mac" aria-label="Auto theme"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6"/><path d="M8 2a6 6 0 0 1 0 12z" fill="currentColor"/></svg></button><button data-t="light" title="Light" aria-label="Light theme"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="8" cy="8" r="3"/><path d="M8 1.2v1.6M8 13.2v1.6M1.2 8h1.6M13.2 8h1.6M3.2 3.2l1.1 1.1M11.7 11.7l1.1 1.1M3.2 12.8l1.1-1.1M11.7 4.3l1.1-1.1"/></svg></button><button data-t="dark" title="Dark" aria-label="Dark theme"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><path d="M13.5 9.6A5.8 5.8 0 0 1 6.4 2.5a5.8 5.8 0 1 0 7.1 7.1z"/></svg></button></div><button id="safeBtn">Is it safe?</button><a href="https://github.com/buhaenko/lingo/issues">Report a bug</a><a href="https://getlensy.app/">Lensy</a></nav>
 </footer>
 
 <dialog id="safe" aria-labelledby="safeTitle">
@@ -250,6 +322,20 @@
   document.getElementById('safeClose').onclick = () => safe.close();
   safe.addEventListener('click', e => { if (e.target === safe) safe.close(); });
   if (location.hash === '#faq') safe.showModal();
+</script>
+
+<script>
+  (() => {
+    const root = document.documentElement, buttons = document.querySelectorAll('.theme button');
+    const show = () => buttons.forEach(b => b.setAttribute('aria-pressed', String(b.dataset.t === (root.dataset.theme || 'auto'))));
+    buttons.forEach(b => b.addEventListener('click', () => {
+      const t = b.dataset.t;
+      if (t === 'auto') delete root.dataset.theme; else root.dataset.theme = t;
+      try { t === 'auto' ? localStorage.removeItem('theme') : localStorage.setItem('theme', t); } catch (e) {}
+      show();
+    }));
+    show();
+  })();
 </script>
 </body>
 </html>
