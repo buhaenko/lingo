@@ -17,8 +17,20 @@ dmg = next(a for a in release["assets"] if a["name"].endswith(".dmg"))
 version = release["tag_name"].removeprefix("v")
 size = f'{dmg["size"] / 1048576:.1f} MB'
 sha = (dmg.get("digest") or "").removeprefix("sha256:")
-# the DMG and the zip the install command fetches; not the checksum file
-downloads = sum(a["download_count"] for r in releases for a in r["assets"] if a["name"].endswith((".dmg", ".zip")))
+
+def people(assets):
+    """Downloads by people, per release.
+
+    Bots and scanners fetch every file of a release, the checksum file included — no person downloads SHA256SUMS.txt —
+    so its count is subtracted from each file as the bot baseline. The app's own updater fetches the zip *and* its .sig,
+    so zips matched by a .sig download are updates, not new installs. What's left: DMGs and install-command zips.
+    """
+    count = lambda suffix: sum(a["download_count"] for a in assets if a["name"].endswith(suffix))
+    bots = count("SHA256SUMS.txt")
+    dmg, zips, sigs = count(".dmg"), count(".zip"), count(".zip.sig")
+    return max(0, dmg - bots) + max(0, zips - max(sigs, bots))
+
+downloads = sum(people(r["assets"]) for r in releases)
 
 html = open(page).read()
 
