@@ -98,7 +98,7 @@ import Carbon
         let item = NSMenuItem(title: title, action: action, keyEquivalent: key)
         item.target = self
         item.image = NSImage(systemSymbolName: symbol, accessibilityDescription: nil)
-        if #available(macOS 27.0, *) { item.preferredImageVisibility = .visible }   // macOS 27 hides menu icons unless asked
+        item.showsImage()
         return item
     }
 
@@ -113,7 +113,7 @@ import Carbon
         updateItem.isEnabled = line.enabled
         let config = line.highlighted ? NSImage.SymbolConfiguration(paletteColors: [.white, .controlAccentColor]) : NSImage.SymbolConfiguration()
         updateItem.image = NSImage(systemSymbolName: line.symbol, accessibilityDescription: nil)?.withSymbolConfiguration(config)
-        if #available(macOS 27.0, *) { updateItem.preferredImageVisibility = .visible }
+        updateItem.showsImage()
     }
 
     /// "Deutsch          fn D" — the hint is text: fn can't be a real key equivalent in an app menu.
@@ -153,5 +153,12 @@ import Carbon
         }
         NSApp.activate(ignoringOtherApps: true)
         settingsWindow?.makeKeyAndOrderFront(nil)
+    }
+}
+
+extension NSMenuItem {
+    /// macOS 27 hides menu item images unless asked. Set by name, so it builds with older SDKs (CI) too.
+    func showsImage() {
+        if responds(to: NSSelectorFromString("setPreferredImageVisibility:")) { setValue(1, forKey: "preferredImageVisibility") }   // .visible
     }
 }
