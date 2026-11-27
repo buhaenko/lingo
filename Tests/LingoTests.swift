@@ -104,7 +104,23 @@ import Carbon
         let img = glyph(code: "EN", count: n, current: n > 0 ? 0 : nil)
         expect(img.size.width > 0 && img.size.height == 18 && img.isTemplate, "\(n) dot(s): valid template image (\(Int(img.size.width))×18)")
     }
-    expect(glyph(code: "EN", count: 12, current: 3).size.width >= glyph(code: "EN", count: 3, current: 0).size.width, "many languages → glyph grows to fit the dots")
+    let five = glyph(code: "EN", count: 5, current: 0).size.width
+    for n in [6, 8, 12, 30] {
+        expect(glyph(code: "EN", count: n, current: n / 2).size.width <= five, "\(n) languages: the icon stays as narrow as with five")
+    }
+    expectEqual(dotWindow(count: 4, current: 2).map(\.index), [0, 1, 2, 3], "up to five: one dot per language")
+    for n in [6, 9, 15] {
+        for cur in 0..<n {
+            let w = dotWindow(count: n, current: cur)
+            if w.count != 5 || !w.contains(where: { $0.index == cur }) { expect(false, "\(n) languages, #\(cur + 1) active: the lit dot is in view (\(w.map(\.index)))") }
+        }
+    }
+    expect(true, "with 6, 9 and 15 languages the active one is always among the five dots")
+    let middle = dotWindow(count: 12, current: 6)
+    expect(middle.first!.scale < 1 && middle.last!.scale < 1, "more on both sides → both edge dots are small")
+    let atStart = dotWindow(count: 12, current: 0)
+    expect(atStart.first!.scale == 1 && atStart.last!.scale < 1, "at the start → only the right edge is small")
+    expect(dotWindow(count: 0, current: nil).isEmpty && dotWindow(count: 9, current: nil).count == 5 && dotWindow(count: 9, current: 99).count == 5, "no current or a bad index → no crash")
 
     // ───────────────────────── integration (real input sources)
     testUpdater()
