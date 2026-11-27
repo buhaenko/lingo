@@ -12,6 +12,8 @@ import Carbon
     var drawn = ""                     // what the menu bar glyph shows now
     var pollCount = 0
     var pollTimer: Timer?
+    var shownPosition: Double?             // where the indicator is drawn
+    var indicatorAnimation: Timer?
 
     // keyboard tap state (see App+KeyboardTap)
     var tap: CFMachPort?
@@ -89,16 +91,37 @@ import Carbon
     }
 
     /// Redraws the menu bar glyph for the active layout (only when something changed).
+    /// Moving to another language in the same list slides the indicator there instead of jumping.
     func refresh() {
         let id = currentSourceID()
         if store.current != id { store.current = id }
         let index = store.langs.firstIndex { $0.sourceID == id }
         let code = index.map { store.langs[$0].code } ?? suggestCode(id)
-        let shown = "\(code)|\(store.langs.count)|\(index ?? -1)"
+        let count = store.langs.count, style = Indicator.current
+        let shown = "\(code)|\(count)|\(index ?? -1)|\(style.rawValue)"
         guard shown != drawn else { return }
+        let sameList = drawn.split(separator: "|").dropFirst().first == Substring("\(count)") && drawn.hasSuffix("|\(style.rawValue)")
         drawn = shown
-        statusItem.button?.image = glyph(code: code, count: store.langs.count, current: index)
         statusItem.button?.toolTip = sourceName(id)
+        let to = index.map(Double.init)
+        let from = shownPosition
+        shownPosition = to
+        indicatorAnimation?.invalidate()
+        guard sameList, let from, let to, from != to, !NSWorkspace.shared.accessibilityDisplayShouldReduceMotion else {
+            statusItem.button?.image = glyph(code: code, count: count, current: to, style: style)
+            return
+        }
+        let start = Date(), duration = 0.22
+        let timer = Timer(timeInterval: 1.0 / 60, repeats: true) { [weak self] timer in
+            MainActor.assumeIsolated {
+                let t = min(1, Date().timeIntervalSince(start) / duration)
+                let eased = 1 - pow(1 - t, 3)
+                self?.statusItem.button?.image = glyph(code: code, count: count, current: from + (to - from) * eased, style: style)
+                if t >= 1 { timer.invalidate() }
+            }
+        }
+        RunLoop.main.add(timer, forMode: .common)
+        indicatorAnimation = timer
     }
 
     /// Now, and again a moment later — macOS reports the new layout with a small delay.

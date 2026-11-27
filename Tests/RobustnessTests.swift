@@ -74,8 +74,8 @@ func residentMB() -> Double {
     let before = currentSourceID()
     for _ in 0..<50 { activate("com.example.nope.\(Int.random(in: 0...9, using: &rng))") }
     expectEqual(currentSourceID(), before, "50 switches to layouts that don't exist change nothing")
-    for n in [0, 1, 6, 40] { _ = glyph(code: "", count: n, current: n > 0 ? n - 1 : nil); _ = glyph(code: "ÄÖÜ", count: n, current: nil) }
-    expect(true, "the menu bar glyph draws with empty codes, umlauts and 40 languages")
+    for n in [0, 1, 6, 40] { for style in Indicator.allCases { _ = glyph(code: "", count: n, current: n > 0 ? Double(n - 1) : nil, style: style); _ = glyph(code: "ÄÖÜ", count: n, current: nil, style: style) } }
+    expect(true, "the menu bar glyph draws with empty codes, umlauts and 40 languages, in every indicator style")
 
     section("Crash test — memory stays flat")
     let start = residentMB()

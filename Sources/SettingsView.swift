@@ -82,6 +82,7 @@ struct SettingsView: View {
     let sources = allKeyboardSources()
     @State private var launchAtLogin = SMAppService.mainApp.status == .enabled
     @State private var trigger = Trigger.current
+    @State private var indicator = Indicator.current
     @State private var axTrusted = AXIsProcessTrusted()
     let tick = Timer.publish(every: 2, on: .main, in: .common).autoconnect()
     @AppStorage("autoUpdate") private var autoUpdate = true
@@ -127,6 +128,17 @@ struct SettingsView: View {
                     }
                     .labelsHidden().pickerStyle(.segmented).fixedSize()
                     .onChange(of: appearance) { _, choice in Appearance.apply(choice) }
+                }
+                Divider().padding(.leading, 12)
+                row("Indicator") {
+                    IndicatorPreview(style: indicator, count: max(store.langs.count, 1),
+                                     current: store.langs.firstIndex { $0.sourceID == store.current } ?? 0,
+                                     code: store.langs.first { $0.sourceID == store.current }?.code ?? store.langs.first?.code ?? "EN")
+                    Picker("", selection: $indicator) {
+                        ForEach(Indicator.allCases) { Text($0 == .auto ? "Auto — dots, then a slider" : $0.title).tag($0) }
+                    }
+                    .labelsHidden().fixedSize()
+                    .onChange(of: indicator) { _, v in UserDefaults.standard.set(v.rawValue, forKey: "indicator"); store.save() }
                 }
                 Divider().padding(.leading, 12)
                 row("Switch with") {
@@ -190,5 +202,22 @@ struct SettingsView: View {
         let key = keyLetters.first { $0.value == first && !usedKeys.contains($0.key) }?.key
             ?? keyLetters.keys.sorted().first { !usedKeys.contains($0) } ?? kVK_ANSI_L
         withAnimation { store.langs.append(Lang(sourceID: pick.id, code: suggestCode(pick.id), key: key)) }
+    }
+}
+
+/// The menu bar icon as it will look with this indicator, for the person's own list of languages.
+private struct IndicatorPreview: View {
+    let style: Indicator
+    let count: Int
+    let current: Int
+    let code: String
+
+    var body: some View {
+        Image(nsImage: glyph(code: code, count: count, current: Double(current), style: style))
+            .renderingMode(.template)
+            .foregroundStyle(.primary)
+            .padding(.horizontal, 8).padding(.vertical, 3)
+            .background(RoundedRectangle(cornerRadius: 5, style: .continuous).fill(Color.primary.opacity(0.06)))
+            .help("How the menu bar icon looks with \(count) languages")
     }
 }

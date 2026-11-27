@@ -104,18 +104,41 @@ import Carbon
         let img = glyph(code: "EN", count: n, current: n > 0 ? 0 : nil)
         expect(img.size.width > 0 && img.size.height == 18 && img.isTemplate, "\(n) dot(s): valid template image (\(Int(img.size.width))×18)")
     }
-    let five = glyph(code: "EN", count: 5, current: 0).size.width
+    let five = glyph(code: "EN", count: 5, current: 0, style: .dots).size.width
     for n in [6, 8, 12, 30] {
-        expect(glyph(code: "EN", count: n, current: n / 2).size.width <= five, "\(n) languages: the icon stays as narrow as with five")
+        expect(glyph(code: "EN", count: n, current: Double(n / 2), style: .dots).size.width <= five, "\(n) languages: the icon stays as narrow as with five")
     }
     expectEqual(dotWindow(count: 4, current: 2).map(\.index), [0, 1, 2, 3], "up to five: one dot per language")
     for n in [6, 9, 15] {
         for cur in 0..<n {
-            let w = dotWindow(count: n, current: cur)
+            let w = dotWindow(count: n, current: Double(cur))
             if w.count != 5 || !w.contains(where: { $0.index == cur }) { expect(false, "\(n) languages, #\(cur + 1) active: the lit dot is in view (\(w.map(\.index)))") }
         }
     }
     expect(true, "with 6, 9 and 15 languages the active one is always among the five dots")
+    section("Indicator styles — chosen in Settings")
+    expectEqual(Indicator.auto.resolved(count: 5), .dots, "Auto: dots up to five languages")
+    expectEqual(Indicator.auto.resolved(count: 6), .slider, "Auto: a slider from six on")
+    expectEqual(Indicator.number.resolved(count: 3), .number, "a chosen style is kept")
+    for style in Indicator.allCases {
+        var widths: [Int] = []
+        for n in [1, 4, 6, 9, 15, 40] {
+            for p in [0.0, Double(n - 1) / 2, Double(n - 1)] {
+                let img = glyph(code: "UK", count: n, current: p, style: style)
+                widths.append(Int(img.size.width))
+                if !(img.size.width > 0 && img.size.height == 18 && img.isTemplate) { expect(false, "\(style.title), \(n) languages: valid image") }
+            }
+        }
+        expect(widths.max()! <= 34, "\(style.title): stays narrow with up to 40 languages (max \(widths.max()!) pt)")
+    }
+    expect(glyph(code: "EN", count: 0, current: nil, style: .slider).size.width > 0 && glyph(code: "EN", count: 6, current: nil, style: .number).size.width > 0,
+           "no languages or no current one → still draws, no crash")
+    expect(glyph(code: "EN", count: 8, current: 2.4, style: .slider).size.width > 0, "in-between positions (the slide animation) draw fine")
+    let saved = UserDefaults.standard.string(forKey: "indicator")
+    UserDefaults.standard.set("nonsense", forKey: "indicator")
+    expectEqual(Indicator.current, .auto, "a broken setting falls back to Auto")
+    if let saved { UserDefaults.standard.set(saved, forKey: "indicator") } else { UserDefaults.standard.removeObject(forKey: "indicator") }
+
     let middle = dotWindow(count: 12, current: 6)
     expect(middle.first!.scale < 1 && middle.last!.scale < 1, "more on both sides → both edge dots are small")
     let atStart = dotWindow(count: 12, current: 0)
