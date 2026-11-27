@@ -39,7 +39,6 @@ struct LangRow: View {
     @Binding var lang: Lang
     let isCurrent: Bool
     let trigger: Trigger
-    let sources: [Source]
     var remove: () -> Void
     @State private var hover = false
 
@@ -53,22 +52,17 @@ struct LangRow: View {
                 .foregroundStyle(isCurrent ? .primary : .secondary)
                 .frame(width: 30)
                 .help("Short code shown in the menu bar")
-            Menu {
-                ForEach(sources) { src in Button(src.name) { lang.sourceID = src.id; lang.code = suggestCode(src.id) } }
-            } label: {
-                HStack(spacing: 6) {
-                    Text(languageName(lang.sourceID)).font(.system(size: 13)).foregroundStyle(.primary)
-                    Text(sourceName(lang.sourceID)).font(.system(size: 11.5)).foregroundStyle(.tertiary)
-                }
+            HStack(spacing: 6) {
+                Text(languageName(lang.sourceID)).font(.system(size: 13)).foregroundStyle(.primary).lineLimit(1)
+                Text(sourceName(lang.sourceID)).font(.system(size: 11.5)).foregroundStyle(.tertiary).lineLimit(1)
             }
-            .menuStyle(.button).buttonStyle(.plain).menuIndicator(.hidden).fixedSize()
-            .help("Change the keyboard layout")
+            .fixedSize()
             Spacer(minLength: 8)
             KeyRecorder(key: $lang.key, trigger: trigger)
             Button(action: remove) {
                 Image(systemName: "minus.circle").font(.system(size: 12)).foregroundStyle(.tertiary)
             }
-            .buttonStyle(.plain).opacity(hover ? 1 : 0).help("Remove")
+            .buttonStyle(.plain).opacity(hover ? 1 : 0).help("Remove — also from your Mac’s input sources")
         }
         .padding(.horizontal, 12).frame(height: 38)
         .contentShape(Rectangle())
@@ -80,6 +74,7 @@ struct SettingsView: View {
     @State private var appearance = Appearance.current
     @ObservedObject var store = Store.shared
     let sources = allKeyboardSources()
+    @State private var addError: String?
     @State private var launchAtLogin = SMAppService.mainApp.status == .enabled
     @State private var trigger = Trigger.current
     @State private var indicator = Indicator.current
@@ -102,23 +97,38 @@ struct SettingsView: View {
                     ForEach(Array($store.langs.enumerated()), id: \.element.id) { i, $lang in
                         VStack(spacing: 0) {
                             if i > 0 { Divider().padding(.leading, 28) }
-                            LangRow(lang: $lang, isCurrent: lang.sourceID == store.current, trigger: trigger, sources: sources) {
-                                withAnimation(.easeOut(duration: 0.15)) { store.langs.removeAll { $0.id == lang.id } }
+                            LangRow(lang: $lang, isCurrent: lang.sourceID == store.current, trigger: trigger) {
+                                let id = lang.sourceID
+                                withAnimation(.easeOut(duration: 0.15)) { _ = store.remove(id) }
                             }
                         }
                         .listRowInsets(EdgeInsets()).listRowSeparator(.hidden).listRowBackground(Color.clear)
                     }
-                    .onMove { store.langs.move(fromOffsets: $0, toOffset: $1) }
                 }
                 .listStyle(.plain).scrollContentBackground(.hidden).scrollDisabled(true)
                 .frame(height: CGFloat(store.langs.count) * 38 + CGFloat(max(store.langs.count - 1, 0)))
                 .id(trigger)
                 Divider()
-                Button(action: add) {
+                Menu {
+                    let enabled = store.langs.map(\.sourceID)
+                    let suggested = Store.suggestions(enabled: enabled)
+                    if !suggested.isEmpty {
+                        Section("Suggested") {
+                            ForEach(suggested, id: \.self) { id in Button("\(languageName(id)) — \(sourceName(id))") { add(id) } }
+                        }
+                    }
+                    Menu("All input sources") {
+                        ForEach(sources.filter { !enabled.contains($0.id) }) { src in Button(src.name) { add(src.id) } }
+                    }
+                } label: {
                     Label("Add language", systemImage: "plus").font(.system(size: 12.5)).foregroundStyle(.secondary)
-                        .frame(maxWidth: .infinity, alignment: .leading).padding(.horizontal, 12).frame(height: 34).contentShape(Rectangle())
                 }
-                .buttonStyle(.plain)
+                .menuStyle(.button).buttonStyle(.plain).menuIndicator(.hidden)
+                .frame(maxWidth: .infinity, alignment: .leading).padding(.horizontal, 12).frame(height: 34)
+                if let addError {
+                    Text(addError).font(.system(size: 11)).foregroundStyle(.orange)
+                        .frame(maxWidth: .infinity, alignment: .leading).padding(.horizontal, 12).padding(.bottom, 8)
+                }
             }
 
             group("Options") {
@@ -168,7 +178,7 @@ struct SettingsView: View {
                 }
             }
 
-            Text(duplicateKeys ? "Two languages use the same key" : "\(trigger.note) · drag to reorder · v\(version)")
+            Text(duplicateKeys ? "Two languages use the same key" : "Same list as System Settings → Keyboard → Input Sources · v\(version)")
                 .font(.system(size: 11)).foregroundStyle(duplicateKeys ? AnyShapeStyle(.orange) : AnyShapeStyle(.tertiary))
                 .frame(maxWidth: .infinity)
         }
@@ -194,14 +204,9 @@ struct SettingsView: View {
 
     var duplicateKeys: Bool { Set(store.langs.map(\.key)).count != store.langs.count }
 
-    func add() {
-        let used = Set(store.langs.map(\.sourceID))
-        guard let pick = sources.first(where: { !used.contains($0.id) }) ?? sources.first else { return }
-        let usedKeys = Set(store.langs.map(\.key))
-        let first = suggestCode(pick.id).first.map(String.init) ?? ""
-        let key = keyLetters.first { $0.value == first && !usedKeys.contains($0.key) }?.key
-            ?? keyLetters.keys.sorted().first { !usedKeys.contains($0) } ?? kVK_ANSI_L
-        withAnimation { store.langs.append(Lang(sourceID: pick.id, code: suggestCode(pick.id), key: key)) }
+    /// Adds it to macOS (System Settings → Input Sources) — then it appears here with its own key.
+    func add(_ id: String) {
+        addError = withAnimation { store.add(id) } ? nil : "macOS didn’t add \(sourceName(id)). Try System Settings → Keyboard → Input Sources."
     }
 }
 

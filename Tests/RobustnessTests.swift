@@ -37,7 +37,7 @@ func residentMB() -> Double {
     NSApp.appearance = nil
 
     section("Crash test — a million random key presses")
-    let langs = Store.firstRun(enabled: ["com.apple.keylayout.US"], preferred: [])
+    let langs = Store.reconciled([], enabled: ["com.apple.keylayout.US", "com.apple.keylayout.German", "com.apple.keylayout.French"])
     let flags: [CGEventFlags] = [[], .maskSecondaryFn, .maskAlternate, .maskControl, [.maskControl, .maskAlternate], .maskShift, .maskCommand,
                                  [.maskSecondaryFn, .maskAlphaShift], [.maskSecondaryFn, .maskCommand, .maskShift], CGEventFlags(rawValue: .max)]
     var hits = 0, misfires = 0

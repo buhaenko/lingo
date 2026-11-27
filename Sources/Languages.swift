@@ -21,6 +21,10 @@ let keyLetters: [Int: String] = [
     kVK_ANSI_6: "6", kVK_ANSI_7: "7", kVK_ANSI_8: "8", kVK_ANSI_9: "9", kVK_ANSI_0: "0",
 ]
 
+/// The languages Lingo switches between are exactly the input sources in System Settings → Keyboard → Input Sources,
+/// in that order. Lingo only adds what's its own: the short code in the menu bar and the key for each one.
+/// Adding a language here adds it to macOS, removing it here removes it from macOS — so it always works,
+/// and the Globe key / Control-Space cycle through the same list.
 @MainActor final class Store: ObservableObject {
     static let shared = Store()
 
@@ -28,53 +32,49 @@ let keyLetters: [Int: String] = [
     @Published var current = ""                 // input source id of the active layout
     var onChange: () -> Void = {}
 
-    init() {
-        if let data = UserDefaults.standard.data(forKey: "langs"), let saved = try? JSONDecoder().decode([Lang].self, from: data) {
-            langs = saved
-        } else {
-            langs = Store.firstRun()
-        }
+    init(enabled: [String] = enabledKeyboardLayouts()) {
+        var saved: [Lang] = []
+        if let data = UserDefaults.standard.data(forKey: "langs"), let list = try? JSONDecoder().decode([Lang].self, from: data) { saved = list }
+        knownEnabled = enabled
+        langs = Store.reconciled(saved, enabled: enabled)
     }
 
-    /// The usual macOS layout for a language — used when the person doesn't have one enabled yet.
+    /// Popular languages and their usual macOS layout — offered first under "Add language".
     static let standardLayouts: [String: String] = [
         "en": "com.apple.keylayout.US", "de": "com.apple.keylayout.German", "es": "com.apple.keylayout.Spanish-ISO",
         "fr": "com.apple.keylayout.French", "uk": "com.apple.keylayout.Ukrainian-PC", "it": "com.apple.keylayout.Italian",
         "pt": "com.apple.keylayout.Portuguese", "pl": "com.apple.keylayout.PolishPro", "ru": "com.apple.keylayout.Russian",
         "sv": "com.apple.keylayout.Swedish", "tr": "com.apple.keylayout.Turkish-QWERTY-PC", "cs": "com.apple.keylayout.Czech",
     ]
-    /// Ready to go on first launch, after the person's own layouts and languages.
-    static let popular = ["en", "de", "es", "fr"]
+    static let popular = ["en", "de", "es", "fr", "uk", "it", "pt", "pl"]
 
-    /// First run: the person's enabled layouts, then their macOS languages, then popular ones — at least four, at most six.
-    /// Layouts that aren't enabled yet get enabled the first time they're used.
-    static func firstRun(enabled: [String] = enabledKeyboardLayouts(),
-                         preferred: [String] = Locale.preferredLanguages,
-                         installed: (String) -> Bool = { source($0, includeAll: true) != nil }) -> [Lang] {
-        var ids: [String] = [], codes = Set<String>()
-        func add(_ id: String) {
-            guard ids.count < 6, installed(id) else { return }
-            let code = suggestCode(id)
-            guard codes.insert(code).inserted else { return }      // ABC and U.S. are both English: keep one
-            ids.append(id)
+    /// Suggestions for "Add language": the person's macOS languages first, then popular ones — only those not on yet.
+    static func suggestions(enabled: [String], preferred: [String] = Locale.preferredLanguages) -> [String] {
+        var out: [String] = []
+        let bases = preferred.map { Locale.Language(identifier: $0).languageCode?.identifier ?? $0 } + popular
+        for base in bases {
+            guard let id = standardLayouts[base], !enabled.contains(id), !out.contains(id), source(id, includeAll: true) != nil else { continue }
+            out.append(id)
         }
-        enabled.forEach(add)
-        for language in preferred {
-            let base = Locale.Language(identifier: language).languageCode?.identifier ?? language
-            if let id = standardLayouts[base] { add(id) }
-        }
-        for language in popular where ids.count < 4 { if let id = standardLayouts[language] { add(id) } }
-        if ids.isEmpty { ids = ["com.apple.keylayout.US"] }
-
-        var used = Set<Int>()
-        return ids.map { id in
-            let lang = make(id, usedKeys: used)
-            used.insert(lang.key)
-            return lang
-        }
+        return out
     }
 
-    /// A new entry for a layout, on a free key: the code's letters first, then the language name's.
+    /// The system's list, with the person's own codes and keys kept for sources Lingo already knew.
+    /// Sources that left macOS leave; new ones join on a free key.
+    static func reconciled(_ saved: [Lang], enabled: [String]) -> [Lang] {
+        guard !enabled.isEmpty else { return saved }     // macOS always has one; an empty answer is a glitch
+        var out: [Lang] = []
+        for id in enabled {
+            if let known = saved.first(where: { $0.sourceID == id }), !out.contains(where: { $0.key == known.key }) {
+                out.append(known)
+            } else {
+                out.append(make(id, usedKeys: Set(out.map(\.key) + saved.filter { enabled.contains($0.sourceID) }.map(\.key))))
+            }
+        }
+        return out
+    }
+
+    /// A new entry for a source, on a free key: the code's letters first, then the language name's.
     static func make(_ id: String, usedKeys used: Set<Int>) -> Lang {
         let code = suggestCode(id)
         let letters = Array(code) + Array(languageName(id).uppercased())
@@ -83,29 +83,30 @@ let keyLetters: [Int: String] = [
         return Lang(sourceID: id, code: code, key: key)
     }
 
-    /// Layouts were added or removed in System Settings (or with the Globe key's "Edit…"): follow it.
-    /// Added ones join the list on a free key; ones the person removed from macOS leave it. Layouts Lingo knows
-    /// but that were never enabled (the popular defaults) stay — they get enabled the first time they're used.
-    static func synced(_ langs: [Lang], before: [String], after: [String]) -> [Lang] {
-        let removed = Set(before).subtracting(after)
-        var out = langs.filter { !removed.contains($0.sourceID) }
-        for id in after where !out.contains(where: { $0.sourceID == id }) {
-            let lang = make(id, usedKeys: Set(out.map(\.key)))
-            if out.contains(where: { $0.code == lang.code }) { continue }      // ABC next to U.S.: both are English
-            out.append(lang)
-        }
-        return out.isEmpty ? langs : out
+    /// What macOS had on when Lingo last looked.
+    private var knownEnabled: [String]
+
+    /// Re-reads System Settings; updates the list when it changed there (or with the Globe key's "Edit…").
+    func followSystem(enabled: [String] = enabledKeyboardLayouts()) {
+        guard enabled != knownEnabled || langs.map(\.sourceID) != enabled else { return }
+        knownEnabled = enabled
+        let updated = Store.reconciled(langs, enabled: enabled)
+        if updated != langs { langs = updated }
     }
 
-    /// What macOS had enabled when Lingo last looked.
-    private var knownEnabled = enabledKeyboardLayouts()
+    /// "Add language": turns it on in macOS, then it shows up here. False if macOS refused.
+    @discardableResult func add(_ id: String) -> Bool {
+        let ok = enableInSystem(id)
+        followSystem()
+        return ok
+    }
 
-    /// Re-reads the enabled layouts; updates the list when System Settings changed them.
-    func followSystem(enabled: [String] = enabledKeyboardLayouts()) {
-        guard enabled != knownEnabled else { return }
-        let updated = Store.synced(langs, before: knownEnabled, after: enabled)
-        knownEnabled = enabled
-        if updated != langs { langs = updated }
+    /// The − button: turns it off in macOS too. Never the last one.
+    @discardableResult func remove(_ id: String) -> Bool {
+        guard langs.count > 1 else { return false }
+        let ok = disableInSystem(id)
+        followSystem()
+        return ok
     }
 
     func save() {

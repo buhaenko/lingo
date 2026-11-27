@@ -64,40 +64,54 @@ import Carbon
     expectEqual(languageName("com.apple.keylayout.German-DIN-2137"), "Deutsch", "language names are native (Deutsch)")
     expectEqual(languageName("com.example.unknown"), "com.example.unknown", "unknown layout → its id, no crash")
 
-    section("First run — your layouts, your languages, then popular ones")
-    let first = Store.firstRun()
-    expect(first.count >= 4 && first.count <= 6, "4–6 languages ready on first launch (\(first.map(\.code).joined(separator: ", ")))")
-    expectEqual(Set(first.map(\.key)).count, first.count, "every language gets its own key")
-    expectEqual(Set(first.map(\.code)).count, first.count, "no language twice")
-    expect(first.allSatisfy { !$0.code.isEmpty && keyLetters[$0.key] != nil }, "every language has a code and a valid key")
-    expect(first.allSatisfy { source($0.sourceID, includeAll: true) != nil }, "only layouts macOS has")
-    let fresh = Store.firstRun(enabled: ["com.apple.keylayout.ABC"], preferred: ["en-US"])
-    expectEqual(fresh.map(\.code), ["EN", "DE", "ES", "FR"], "a new Mac with only English → English, German, Spanish, French")
-    expectEqual(fresh.map { keyLetters[$0.key]! }, ["E", "D", "S", "F"], "on E, D, S, F")
-    let ukrainian = Store.firstRun(enabled: ["com.apple.keylayout.US"], preferred: ["uk-UA", "en"])
-    expectEqual(ukrainian.map(\.code), ["EN", "UK", "DE", "ES"], "Ukrainian in macOS → Ukrainian comes right after English")
-    let both = Store.firstRun(enabled: ["com.apple.keylayout.ABC", "com.apple.keylayout.US", "com.apple.keylayout.German"], preferred: ["de"])
-    expectEqual(both.map(\.code), ["EN", "DE", "ES", "FR"], "ABC and U.S. are one language, not two")
-    let many = Store.firstRun(enabled: ["com.apple.keylayout.US", "com.apple.keylayout.German", "com.apple.keylayout.French", "com.apple.keylayout.Italian",
-                                        "com.apple.keylayout.Polish", "com.apple.keylayout.Swedish", "com.apple.keylayout.Czech"], preferred: [])
-    expectEqual(many.count, 6, "never more than six")
-    expectEqual(Store.firstRun(enabled: [], preferred: [], installed: { _ in false }).map(\.code), ["EN"], "nothing usable → English, no crash")
-    expectEqual(Store.firstRun(enabled: ["com.example.bogus"], preferred: ["xx", ""]).first?.code, "EN", "garbage in → sensible defaults")
+    section("The merged is System Settings → Input Sources — nothing that can't work")
+    let usID = "com.apple.keylayout.US", deID = "com.apple.keylayout.German", ukID = "com.apple.keylayout.Ukrainian-PC", abcID = "com.apple.keylayout.ABC"
+    let system = enabledKeyboardLayouts()
+    expect(!system.isEmpty, "reads the Mac's input sources (\(system.map(sourceName).joined(separator: ", ")))")
+    let first = Store.reconciled([], enabled: system)
+    expectEqual(first.map(\.sourceID), system, "first launch: exactly the Mac's input sources, in the same order")
+    expectEqual(Set(first.map(\.key)).count, first.count, "every one gets its own key")
+    expect(first.allSatisfy { !$0.code.isEmpty && $0.code != "?" || sourceName($0.sourceID).isEmpty }, "every one gets a code (\(first.map(\.code).joined(separator: " ")))")
+    expect(!system.contains("com.apple.keylayout.2SetHangul"), "layouts macOS can't switch to on their own (Hangul) aren't listed")
+    let mine = [Lang(sourceID: deID, code: "GE", key: kVK_ANSI_G), Lang(sourceID: usID, code: "US", key: kVK_ANSI_U)]
+    var merged = Store.reconciled(mine, enabled: [usID, deID, ukID])
+    expectEqual(merged.map(\.sourceID), [usID, deID, ukID], "same order as macOS (the Globe key cycles in it)")
+    expect(merged[0].code == "US" && merged[0].key == kVK_ANSI_U && merged[1].code == "GE", "your own codes and keys are kept")
+    expect(merged[2].code == "UK" && merged[2].key != kVK_ANSI_U && merged[2].key != kVK_ANSI_G, "a source added in macOS joins on a free key")
+    merged = Store.reconciled(merged, enabled: [usID, ukID])
+    expect(!merged.contains { $0.sourceID == deID }, "a source removed in macOS leaves Lingo")
+    let stale = [Lang(sourceID: "com.apple.keylayout.3SetHangul", code: "", key: kVK_ANSI_A), Lang(sourceID: "com.apple.keylayout.French", code: "FR", key: kVK_ANSI_F)]
+    expectEqual(Store.reconciled(stale, enabled: [usID]).map(\.sourceID), [usID], "old entries that aren't on in macOS (they could never switch) are dropped")
+    expectEqual(Store.reconciled(mine, enabled: []), mine, "an empty answer from macOS (a glitch) changes nothing")
+    let clash = [Lang(sourceID: usID, code: "EN", key: kVK_ANSI_E), Lang(sourceID: abcID, code: "AB", key: kVK_ANSI_E)]
+    expectEqual(Set(Store.reconciled(clash, enabled: [usID, abcID]).map(\.key)).count, 2, "two sources on one key → the second gets a free one")
+    let suggested = Store.suggestions(enabled: [usID], preferred: ["uk-UA", "en"])
+    expect(suggested.first == ukID && !suggested.contains(usID), "Add language suggests your macOS languages first, never one that's already on (\(suggested.map(suggestCode)))")
+    expectEqual(suggestCode("com.apple.keylayout.3SetHangul").isEmpty, false, "a source without a language still gets a code (\(suggestCode("com.apple.keylayout.3SetHangul")))")
+    expect(allKeyboardSources().contains { $0.id == "com.apple.inputmethod.Korean.2SetKorean" }, "Korean, Chinese, Japanese input methods can be added")
+    expect(!allKeyboardSources().contains { $0.id == "com.apple.keylayout.2SetHangul" }, "but not the bare Hangul layouts that can't be switched to")
 
-    section("Following System Settings — layouts added or removed there")
-    let usID = "com.apple.keylayout.US", deID = "com.apple.keylayout.German", ukID = "com.apple.keylayout.Ukrainian-PC", frID = "com.apple.keylayout.French"
-    let start = Store.firstRun(enabled: [usID, deID], preferred: [])      // EN DE + popular ES FR (not enabled yet)
-    var synced = Store.synced(start, before: [usID, deID], after: [usID, deID, ukID])
-    expectEqual(synced.map(\.code), start.map(\.code) + ["UK"], "a layout added in System Settings joins Lingo")
-    expectEqual(Set(synced.map(\.key)).count, synced.count, "on a key of its own")
-    expectEqual(Array(synced.prefix(start.count)), start, "the others keep their keys and order")
-    synced = Store.synced(synced, before: [usID, deID, ukID], after: [usID, ukID])
-    expect(!synced.contains { $0.sourceID == deID }, "a layout removed in System Settings leaves Lingo")
-    expect(synced.contains { $0.code == "ES" } && synced.contains { $0.code == "FR" }, "popular defaults that were never enabled stay")
-    expectEqual(Store.synced(start, before: [usID, deID], after: [usID, deID, "com.apple.keylayout.ABC"]).map(\.code), start.map(\.code), "ABC next to U.S. isn't a second English")
-    expectEqual(Store.synced(start, before: [usID, deID], after: [usID, deID]), start, "nothing changed → nothing changes")
-    let lone = [Lang(sourceID: frID, code: "FR", key: kVK_ANSI_F)]
-    expectEqual(Store.synced(lone, before: [frID], after: []), lone, "never ends up with no languages at all")
+    section("Adding and removing goes through macOS — real input sources")
+    let irish = "com.apple.keylayout.Irish"
+    if source(irish, includeAll: true) != nil && !system.contains(irish) {
+        let store = Store()
+        expect(store.add(irish), "Add language turns it on in macOS")
+        expect(enabledKeyboardLayouts().contains(irish), "it's in System Settings → Input Sources now")
+        expect(store.langs.contains { $0.sourceID == irish }, "and in Lingo, on its own key")
+        activate(irish)
+        RunLoop.main.run(until: Date().addingTimeInterval(0.3))
+        expectEqual(currentSourceID(), irish, "fn + its key switches to it")
+        expect(store.remove(irish), "− turns it off in macOS")
+        expect(!enabledKeyboardLayouts().contains(irish), "gone from System Settings")
+        expect(!store.langs.contains { $0.sourceID == irish }, "and from Lingo")
+        expect(currentSourceID() != irish, "if it was active, macOS moved to another one first")
+        expectEqual(enabledKeyboardLayouts(), system, "the Mac's input sources are exactly as before the test")
+    } else { skip("add/remove in macOS", "Irish is already on, or not installed") }
+    let before = enabledKeyboardLayouts()
+    activate("com.apple.keylayout.3SetHangul")
+    activate("com.apple.keylayout.Irish")
+    expectEqual(enabledKeyboardLayouts(), before, "switching never turns sources on behind your back")
+    if before.count == 1 { expect(!Store().remove(before[0]), "the last input source can't be removed") }
 
     section("Menu bar glyph")
     for n in [0, 1, 3, 6] {
@@ -150,7 +164,7 @@ import Carbon
 
     section("Switching layouts — real TIS calls")
     let original = currentSourceID()
-    let enabled = allKeyboardSources().filter { source($0.id) != nil }
+    let enabled = enabledKeyboardLayouts().map { Source(id: $0, name: sourceName($0)) }
     expect(!original.isEmpty, "current layout is readable (\(original))")
     expect(allKeyboardSources().count > 20, "all installed layouts are listed for the picker (\(allKeyboardSources().count))")
     if let other = enabled.first(where: { $0.id != original }) {
