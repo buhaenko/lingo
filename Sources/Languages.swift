@@ -68,13 +68,44 @@ let keyLetters: [Int: String] = [
 
         var used = Set<Int>()
         return ids.map { id in
-            let code = suggestCode(id)
-            let letters = Array(code) + Array(languageName(id).uppercased())
-            let key = letters.lazy.compactMap { ch in keyLetters.first { $0.value == String(ch) && !used.contains($0.key) }?.key }.first
-                ?? keyLetters.keys.sorted().first { !used.contains($0) }!
-            used.insert(key)
-            return Lang(sourceID: id, code: code, key: key)
+            let lang = make(id, usedKeys: used)
+            used.insert(lang.key)
+            return lang
         }
+    }
+
+    /// A new entry for a layout, on a free key: the code's letters first, then the language name's.
+    static func make(_ id: String, usedKeys used: Set<Int>) -> Lang {
+        let code = suggestCode(id)
+        let letters = Array(code) + Array(languageName(id).uppercased())
+        let key = letters.lazy.compactMap { ch in keyLetters.first { $0.value == String(ch) && !used.contains($0.key) }?.key }.first
+            ?? keyLetters.keys.sorted().first { !used.contains($0) } ?? kVK_ANSI_L
+        return Lang(sourceID: id, code: code, key: key)
+    }
+
+    /// Layouts were added or removed in System Settings (or with the Globe key's "Edit…"): follow it.
+    /// Added ones join the list on a free key; ones the person removed from macOS leave it. Layouts Lingo knows
+    /// but that were never enabled (the popular defaults) stay — they get enabled the first time they're used.
+    static func synced(_ langs: [Lang], before: [String], after: [String]) -> [Lang] {
+        let removed = Set(before).subtracting(after)
+        var out = langs.filter { !removed.contains($0.sourceID) }
+        for id in after where !out.contains(where: { $0.sourceID == id }) {
+            let lang = make(id, usedKeys: Set(out.map(\.key)))
+            if out.contains(where: { $0.code == lang.code }) { continue }      // ABC next to U.S.: both are English
+            out.append(lang)
+        }
+        return out.isEmpty ? langs : out
+    }
+
+    /// What macOS had enabled when Lingo last looked.
+    private var knownEnabled = enabledKeyboardLayouts()
+
+    /// Re-reads the enabled layouts; updates the list when System Settings changed them.
+    func followSystem(enabled: [String] = enabledKeyboardLayouts()) {
+        guard enabled != knownEnabled else { return }
+        let updated = Store.synced(langs, before: knownEnabled, after: enabled)
+        knownEnabled = enabled
+        if updated != langs { langs = updated }
     }
 
     func save() {

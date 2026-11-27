@@ -9,6 +9,9 @@ import Carbon
     let store = Store.shared
     var settingsWindow: NSWindow?
     weak var updateItem: NSMenuItem?
+    var drawn = ""                     // what the menu bar glyph shows now
+    var pollCount = 0
+    var pollTimer: Timer?
 
     // keyboard tap state (see App+KeyboardTap)
     var tap: CFMachPort?
@@ -24,17 +27,39 @@ import Carbon
         statusItem.menu = menu
         store.onChange = { [weak self] in self?.refresh() }
         refresh()
-        DistributedNotificationCenter.default().addObserver(
-            forName: NSNotification.Name(kTISNotifySelectedKeyboardInputSourceChanged as String), object: nil, queue: .main
-        ) { [weak self] _ in
-            MainActor.assumeIsolated { self?.refresh() }
-        }
+        watchLayouts()
         NSLog("Lingo: launched \(Updater.currentVersion)")
         if Self.e2e { return }               // end-to-end test copy: no keyboard tap, prompts or update checks
         installKeyboardTap()
         Updater.shared.isIdle = { [weak self] in !(self?.settingsWindow?.isVisible ?? false) }
         Updater.shared.onChange = { [weak self] in self?.showUpdateState() }
         Updater.shared.start()
+    }
+
+    /// Keeps the icon and the list in step with macOS, however the layout is switched.
+    func watchLayouts() {
+        // macOS posts "layout changed" a moment before the new layout is reported as current — reading it right
+        // away gives the previous one, so the icon lagged a step behind. Look again shortly after, and keep a
+        // once-a-second check in case macOS is slower still or a notification is missed.
+        let center = DistributedNotificationCenter.default()
+        center.addObserver(forName: NSNotification.Name(kTISNotifySelectedKeyboardInputSourceChanged as String), object: nil, queue: .main) { [weak self] _ in
+            MainActor.assumeIsolated { self?.refreshSoon() }
+        }
+        center.addObserver(forName: NSNotification.Name(kTISNotifyEnabledKeyboardInputSourcesChanged as String), object: nil, queue: .main) { [weak self] _ in
+            MainActor.assumeIsolated { self?.store.followSystem(); self?.refreshSoon() }
+        }
+        pollTimer?.invalidate()
+        let poll = Timer(timeInterval: 1, repeats: true) { [weak self] _ in
+            MainActor.assumeIsolated {
+                guard let self else { return }
+                self.pollCount += 1
+                if self.pollCount % 3 == 0 { self.store.followSystem() }
+                self.refresh()
+            }
+        }
+        poll.tolerance = 0.3
+        RunLoop.main.add(poll, forMode: .common)
+        pollTimer = poll
     }
 
     /// Set by scripts/e2e.sh, which runs a renamed copy next to the real app.
@@ -63,14 +88,25 @@ import Carbon
         return true
     }
 
-    /// Redraws the menu bar glyph for the active layout.
+    /// Redraws the menu bar glyph for the active layout (only when something changed).
     func refresh() {
         let id = currentSourceID()
         if store.current != id { store.current = id }
         let index = store.langs.firstIndex { $0.sourceID == id }
         let code = index.map { store.langs[$0].code } ?? suggestCode(id)
+        let shown = "\(code)|\(store.langs.count)|\(index ?? -1)"
+        guard shown != drawn else { return }
+        drawn = shown
         statusItem.button?.image = glyph(code: code, count: store.langs.count, current: index)
         statusItem.button?.toolTip = sourceName(id)
+    }
+
+    /// Now, and again a moment later — macOS reports the new layout with a small delay.
+    func refreshSoon() {
+        refresh()
+        for delay in [0.05, 0.15, 0.4, 1.0, 2.0] {
+            DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak self] in self?.refresh() }
+        }
     }
 
     // MARK: - Menu

@@ -84,6 +84,21 @@ import Carbon
     expectEqual(Store.firstRun(enabled: [], preferred: [], installed: { _ in false }).map(\.code), ["EN"], "nothing usable → English, no crash")
     expectEqual(Store.firstRun(enabled: ["com.example.bogus"], preferred: ["xx", ""]).first?.code, "EN", "garbage in → sensible defaults")
 
+    section("Following System Settings — layouts added or removed there")
+    let usID = "com.apple.keylayout.US", deID = "com.apple.keylayout.German", ukID = "com.apple.keylayout.Ukrainian-PC", frID = "com.apple.keylayout.French"
+    let start = Store.firstRun(enabled: [usID, deID], preferred: [])      // EN DE + popular ES FR (not enabled yet)
+    var synced = Store.synced(start, before: [usID, deID], after: [usID, deID, ukID])
+    expectEqual(synced.map(\.code), start.map(\.code) + ["UK"], "a layout added in System Settings joins Lingo")
+    expectEqual(Set(synced.map(\.key)).count, synced.count, "on a key of its own")
+    expectEqual(Array(synced.prefix(start.count)), start, "the others keep their keys and order")
+    synced = Store.synced(synced, before: [usID, deID, ukID], after: [usID, ukID])
+    expect(!synced.contains { $0.sourceID == deID }, "a layout removed in System Settings leaves Lingo")
+    expect(synced.contains { $0.code == "ES" } && synced.contains { $0.code == "FR" }, "popular defaults that were never enabled stay")
+    expectEqual(Store.synced(start, before: [usID, deID], after: [usID, deID, "com.apple.keylayout.ABC"]).map(\.code), start.map(\.code), "ABC next to U.S. isn't a second English")
+    expectEqual(Store.synced(start, before: [usID, deID], after: [usID, deID]), start, "nothing changed → nothing changes")
+    let lone = [Lang(sourceID: frID, code: "FR", key: kVK_ANSI_F)]
+    expectEqual(Store.synced(lone, before: [frID], after: []), lone, "never ends up with no languages at all")
+
     section("Menu bar glyph")
     for n in [0, 1, 3, 6] {
         let img = glyph(code: "EN", count: n, current: n > 0 ? 0 : nil)
@@ -109,6 +124,28 @@ import Carbon
     } else { skip("layout switching", "only one keyboard layout is enabled") }
     activate("com.example.does-not-exist")
     expectEqual(currentSourceID(), original, "activating a missing layout does nothing (no crash)")
+
+    section("Menu bar icon follows every switch — the Globe/fn key, Control-Space, Lingo itself")
+    if enabled.count > 1 {
+        let app = AppDelegate()
+        app.watchLayouts()
+        var lagged: [String] = []
+        for round in 0..<3 {
+            for layout in enabled {
+                guard let tis = source(layout.id) else { continue }
+                TISSelectInputSource(tis)                // the way macOS switches: Lingo only hears the notification
+                RunLoop.main.run(until: Date().addingTimeInterval(1.5))
+                let active = currentSourceID()             // what macOS really has now (it can switch back on its own)
+                let index = app.store.langs.firstIndex { $0.sourceID == active }
+                let code = index.map { app.store.langs[$0].code } ?? suggestCode(active)
+                if !app.drawn.hasPrefix(code + "|") { lagged.append("\(round):\(sourceName(active))→\(app.drawn)") }
+            }
+        }
+        expect(lagged.isEmpty, "the icon shows the active layout after every switch (\(enabled.count * 3) switches) \(lagged)")
+        app.pollTimer?.invalidate()
+        activate(original)
+        RunLoop.main.run(until: Date().addingTimeInterval(0.3))
+    } else { skip("icon follows switches", "only one keyboard layout is enabled") }
 
     runRobustnessTests()
 
